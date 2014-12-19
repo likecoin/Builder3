@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+	<!-- o2engine_meta -->
+	<meta name="o2engine_gameID" content="test" />
+	<meta name="o2engine_userServer" content="http://d1.novelsphere.jp" />
+	
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<link rel="apple-touch-icon" href="icon.png" />
+	<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+	<meta http-equiv="Pragma" content="no-cache">
+	<meta http-equiv="Expires" content="-1">
+	<meta name="viewport" content="minimal-ui">
+
+	<link rel="stylesheet" href="engine/style.css" type="text/css" />
+
+	<script src="engine/jquery-2.0.0.min.js"></script>
+	<script src="engine/helpers.js"></script>
+	<script src="engine/resourceLoader.js"></script>
+	<script src="engine/conductor.js"></script>
+	<script src="engine/kagFile.js"></script>
+	<script src="engine/drawable.js"></script>
+	<script src="engine/layerManager.js"></script>
+	<script src="engine/imageLayer.js"></script>
+	<script src="engine/messageLayer.js"></script>
+	<script src="engine/sound.js"></script>
+	<script src="engine/tag.js"></script>
+	<script src="engine/tags/s.js"></script>
+	<script src="engine/tags/text.js"></script>
+	<script src="engine/tags/button.js"></script>
+	<script src="engine/tags/image.js"></script>
+	<script src="engine/tags/backlay.js"></script>
+	<script src="engine/tags/layopt.js"></script>
+	<script src="engine/tags/trans.js"></script>
+	<script src="engine/tags/transMethods/crossfade.js"></script>
+	<script src="engine/tags/transMethods/scroll.js"></script>
+	<script src="engine/tags/transMethods/universal.js"></script>
+	<script src="engine/tags/move.js"></script>
+	<script src="engine/tags/quake.js"></script>
+	<script src="engine/tags/jump.js"></script>
+	<script src="engine/tags/macro.js"></script>
+	<script src="engine/tags/se.js"></script>
+	<script src="engine/tags/bgm.js"></script>
+	<script src="engine/tags/if.js"></script>
+	<script src="engine/tags/wait.js"></script>
+	<script src="engine/tags/eval.js"></script>
+	<script src="engine/tags/rclick.js"></script>
+	<script src="engine/tags/o2_request.js"></script>
+	<script src="engine/tags/title.js"></script>
+	<script src="engine/event.js"></script>
+	<script src="engine/history.js"></script>
+	<script src="engine/tags/history.js"></script>
+	<script src="engine/tags/video.js"></script>
+	<script src="engine/tags/save.js"></script>
+	<script src="engine/animationConductor.js"></script>
+	<script src="engine/tags/animation.js"></script>
+	<script src="engine/tags/geo.js"></script>
+	<script src="engine/tags/clearsysvar.js"></script>
+	<script src="engine/tags/glyph.js"></script>
+	<script src="engine/tags/o2_loadplugin.js"></script>
+	<script src="engine/tags/o2_sysbutton.js"></script>
+	<script src="engine/tags/skip.js"></script>
+	<script src="engine/tags/dispatch.js"></script>
+	<script src="engine/tags/build_tag.js"></script>
+	<script src="engine/tags/gesture.js"></script>
+	<script src="engine/init.js"></script>
+	<script src="engine/config.js"></script>
+
+	<script src="script.js"></script>
+</head>
+<body>
+	<div id="main-wrapper">
+		<div class="video-wrapper">
+
+		</div>
+	</div>
+	<div id="loading" class="hidden">
+		<img src="engine/resources/loading.gif" alt="">
+	</div>
+	<div id="error" class="hidden">
+		<p>Server error</p>
+		<input type="button" id="retryButton" value="Retry" />
+	</div>
+	<div id="login-box" class="black-overlay hidden">
+		<iframe src="" allowTransparency="true"></iframe>
+	</div>
+</body>
+</html>

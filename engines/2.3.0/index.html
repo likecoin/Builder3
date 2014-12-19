@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+	<!-- o2engine_meta -->
+	
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<link rel="apple-touch-icon" href="icon.png" />
+	<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+	<meta http-equiv="Pragma" content="no-cache">
+	<meta http-equiv="Expires" content="-1">
+
+	<link rel="stylesheet" href="engine/style.css" type="text/css" />
+
+	<script src="engine/o2.js"></script>
+	<script src="script.js"></script>
+</head>
+<body>
+	<div id="main-wrapper">
+		<div class="video-wrapper">
+
+		</div>
+		<img id="glyph" class="hidden"/>
+	</div>
+	<div id="loading" class="hidden">
+		<img src="engine/resources/loading.gif" alt="">
+	</div>
+	<div id="error" class="hidden">
+		<p>Server error</p>
+		<input type="button" id="retryButton" value="Retry" />
+	</div>
+	<div id="login-box" class="black-overlay hidden">
+		<iframe src="" allowTransparency="true"></iframe>
+	</div>
+	<!-- google_analytics -->
+</body>
+</html>
