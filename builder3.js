@@ -135,8 +135,8 @@ var Builder3 = function(){
 
 		var srcPathFiles = fs.readdirSync(srcPath);
 		var srcPathFilesForValidation = [];
-		for( var srcPathFile in srcPathFiles ){
-			srcPathFilesForValidation.push(srcPathFile.toLowerCase());
+		for( var key in srcPathFiles ){
+			srcPathFilesForValidation.push(srcPathFiles[key].toLowerCase());
 		}
 
 		if( srcPathFilesForValidation.indexOf('config.json') == -1 || !fs.statSync(path.join(srcPath, 'config.json')).isFile() ){
@@ -156,8 +156,8 @@ var Builder3 = function(){
 				if( fs.statSync(destPath).isDirectory() ){
 					var destPathFiles = fs.readdirSync(destPath);
 					var destPathFilesForValidation = [];
-					for( var destPathFile in destPathFiles ){
-						destPathFilesForValidation.push(destPathFile.toLowerCase());
+					for( var key in destPathFiles ){
+						destPathFilesForValidation.push(destPathFiles[key].toLowerCase());
 					}
 					if( destPathFilesForValidation.indexOf('script.js') == -1 ){
 						log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
