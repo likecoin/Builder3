@@ -134,13 +134,17 @@ var Builder3 = function(){
 		}
 
 		var srcPathFiles = fs.readdirSync(srcPath);
+		var srcPathFilesForValidation = [];
+		for( var srcPathFile in srcPathFiles ){
+			srcPathFilesForValidation.push(srcPathFile.toLowerCase());
+		}
 
-		if( srcPathFiles.indexOf('config.json') == -1 || !fs.statSync(path.join(srcPath, 'config.json')).isFile() ){
+		if( srcPathFilesForValidation.indexOf('config.json') == -1 || !fs.statSync(path.join(srcPath, 'config.json')).isFile() ){
 			log.error('ビルド元フォルダにconfig.jsonがありません');
 			if( isRequired ) return;
 		}
 
-		if( srcPathFiles.indexOf('data') == -1 || !fs.statSync(path.join(srcPath, 'data')).isDirectory() ){
+		if( srcPathFilesForValidation.indexOf('data') == -1 || !fs.statSync(path.join(srcPath, 'data')).isDirectory() ){
 			log.error('ビルド元フォルダにdataフォルダがありません');
 			if( isRequired ) return;
 		}
@@ -151,7 +155,11 @@ var Builder3 = function(){
 			if( fs.existsSync(destPath) ){
 				if( fs.statSync(destPath).isDirectory() ){
 					var destPathFiles = fs.readdirSync(destPath);
-					if( destPathFiles.indexOf('script.js') == -1 ){
+					var destPathFilesForValidation = [];
+					for( var destPathFile in destPathFiles ){
+						destPathFilesForValidation.push(destPathFile.toLowerCase());
+					}
+					if( destPathFilesForValidation.indexOf('script.js') == -1 ){
 						log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
 						if( isRequired ) return;
 					}
