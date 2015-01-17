@@ -191,7 +191,7 @@ var Builder3 = function(){
 			var configContent = fs.readFileSync(configFile);
 
 			try {
-				var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, ''));
+				var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]+?\*\//g, '').replace(/\/\/.*/g, ''));
 			} catch(e) {
 				log.error('config.jsonの書式が正しくありません:\n' + e);
 				if( isRequired ) return;
