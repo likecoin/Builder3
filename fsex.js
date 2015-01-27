@@ -6,18 +6,18 @@ var path = require('path');
 exports.readdirRSync = function(dirPath){
 
 	var walk = function(dir){
-	    var results = [];
-	    var list = fs.readdirSync(dir);
-	    list.forEach(function(file) {
-			file = dir + '/' + file
-			var stat = fs.statSync(file)
-			if ( stat && stat.isDirectory() ){
-				results = results.concat(walk(file));
-			} else {
-				results.push(file);
-			}
-	    });
-	    return results;
+		var results = [];
+		var list = fs.readdirSync(dir);
+		list.forEach(function(file) {
+		file = dir + '/' + file
+		var stat = fs.statSync(file)
+		if ( stat && stat.isDirectory() ){
+			results = results.concat(walk(file));
+		} else {
+			results.push(file);
+		}
+		});
+		return results;
 	};
 
 	return walk(dirPath);
@@ -64,7 +64,7 @@ exports.rmdirRSync = function(dirPath){
 		for( var i = 0; i < list.length; i++ ) {
 			var filename = path.join(dir, list[i]);
 			var stat = fs.statSync(filename);
-			
+
 			if(filename == "." || filename == "..") {
 				// do nothing
 			} else if(stat.isDirectory()) {
