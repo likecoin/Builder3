@@ -66,9 +66,9 @@ var Builder3 = function(){
 		// セットアップの状態をチェック
 		if( ! this.setupValidation(command.args, isRequired)) return false;
 
-		// Submit用パッケージ作成
+		// パッケージ作成
 		if( command.package ){
-			this.execPackage();
+			if( ! this.execPackage()) return false;
 			return true;
 		}
 
@@ -352,9 +352,10 @@ var Builder3 = function(){
 		return true;
 	};
 
+
 	/*
 		@name: execPackage
-		@description: Zip Archive
+		@description: パッケージ作成
 	*/
 	this.execPackage = function(){
 		log.message('パッケージング中です');
@@ -366,20 +367,20 @@ var Builder3 = function(){
 			log.message('ZIPファイルの書き出し中です');
 
 			fs.writeFile(destPath, buf, function(){
-
 				log.end('パッケージングを完了しました');
-
 				if( callback ){
 					callback(null);
 				}
 			});
 		}, function(err){
 			log.error('パッケージングに失敗しました');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}, function(filename){
 		}, function(filename){
 			log.message('圧縮:' + filename);
 		});
+
+		return true;
 	};
 
 	function setupResource(srcDir, destDir, extensions, type, safeList, removeExtension, isForce, cb){
