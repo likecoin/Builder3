@@ -61,11 +61,9 @@ var Builder3 = function(){
 			command = options;
 		}
 
-		// コマンドの引数に問題がある場合のエラー
-		if( 2 < command.args.length || command.args.length < 2 ){
-			log.error('引数の数に誤りがあります');
-			if( isRequired ) return;
-		}
+		// セットアップの状態をチェック
+		// TODO: リファクタ中
+		if( ! this.setupValidation(command.args, isRequired)) return false;
 
 		// ビルドするパッケージが不整合な場合のエラー
 		if( !command.package ){
@@ -102,6 +100,7 @@ var Builder3 = function(){
 				wrapperVersion = command.wrapper;
 			}
 		}
+		// テスト
 
 		srcPath = path.normalize(command.args[0] + '/');
 
@@ -355,7 +354,17 @@ var Builder3 = function(){
 		var version = packageJson.version;
 
 		return version;
-	}
+	};
+
+	// セットアップ状態のチェック
+	this.setupValidation = function(args, isRequired){
+		// コマンドの引数に問題がある場合のエラー
+		if( 2 < args.length || args.length < 2 ){
+			log.error('引数の数に誤りがあります');
+			if( isRequired ) return false;
+		}
+		return true;
+	};
 
 	function setupResource(srcDir, destDir, extensions, type, safeList, removeExtension, isForce, cb){
 
