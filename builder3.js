@@ -64,16 +64,16 @@ var Builder3 = function(){
 		}
 
 		// セットアップの状態をチェック
-		// FIXME: リファクタ中
 		if( ! this.setupValidation(command.args, isRequired)) return false;
 
+		// Submit用パッケージ作成
 		if( command.package ){
-			// Zip Archive
 			this.execPackage();
 			return true;
 		}
-		// build
 
+		// FIXME: 以下リファクタ中
+		// build
 		if( fs.existsSync(destPath) ){
 			if( fs.statSync(destPath).isDirectory() ){
 				var destPathFiles = fs.readdirSync(destPath);
@@ -239,7 +239,6 @@ var Builder3 = function(){
 			});
 		});
 
-		// インデント
 	}
 
 
