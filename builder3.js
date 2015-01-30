@@ -1,4 +1,5 @@
 
+// FIXME: constructorが長すぎるので細分化すべき
 var Builder3 = function(){
 
 	this.log;
@@ -7,13 +8,13 @@ var Builder3 = function(){
 		path = require('path'),
 		util = require('util'),
 		unorm = require('unorm'),
-		//zipdir = require('zip-dir'),
-		//command = require('commander'),
+		//zipdir = require('zip-dir'), // FIXME: 不要なら削除する
+		//command = require('commander'), // FIXME: 不要なら削除する
 		AdmZip = require('adm-zip'),
 		command,
 		builder = require('./nodejs/builder/builder.js'),
 		packageJson = require('./package.json'),
-		//log = require('./log.js'),
+		//log = require('./log.js'), // FIXME: 不要なら削除する
 		log,
 		fsex = require('./fsex.js');
 
@@ -60,11 +61,13 @@ var Builder3 = function(){
 			command = options;
 		}
 
+		// コマンドの引数に問題がある場合のエラー
 		if( 2 < command.args.length || command.args.length < 2 ){
 			log.error('引数の数に誤りがあります');
 			if( isRequired ) return;
 		}
 
+		// ビルドするパッケージが不整合な場合のエラー
 		if( !command.package ){
 
 			if( command.engines ){
@@ -102,6 +105,7 @@ var Builder3 = function(){
 
 		srcPath = path.normalize(command.args[0] + '/');
 
+		// オプションに問題がある場合のエラー
 		if( command.package ){
 			destPath = path.normalize(command.args[1]);
 		} else {
@@ -549,10 +553,12 @@ var Builder3 = function(){
 						});
 					}
 				} else {
-					cb(map);	//謎
+					// FIXME: これは必要なのか調査し修正する
+					cb(map);
 				}
 			}
 
+			// FIXME: なぜ利用されていないのか
 			//return exitFlg;
 
 		}
