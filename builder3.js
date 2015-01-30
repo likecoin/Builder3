@@ -18,13 +18,14 @@ var Builder3 = function(){
 		log,
 		fsex = require('./fsex.js');
 
-	var srcPath,
-		destPath,
+	var destPath,
 		enginePath,
-		wrapperPath,
 		engineVersion,
-		wrapperVersion,
-		isRequired;
+		isRequired,
+		srcPathFiles,
+		srcPath,
+		wrapperPath,
+		wrapperVersion;
 
 	var ENGINES_PATH = './engines',
 		WRAPPERS_PATH = './wrappers',
@@ -66,227 +67,196 @@ var Builder3 = function(){
 		// FIXME: リファクタ中
 		if( ! this.setupValidation(command.args, isRequired)) return false;
 
-		var srcPathFiles = fs.readdirSync(srcPath);
-		var srcPathFilesForValidation = [];
-		for( var key in srcPathFiles ){
-			srcPathFilesForValidation.push(srcPathFiles[key].toLowerCase());
+		if( command.package ){
+			// Zip Archive
+			this.execPackage();
+			return true;
 		}
+		// build
 
-		if( srcPathFilesForValidation.indexOf('config.json') == -1 || !fs.statSync(path.join(srcPath, 'config.json')).isFile() ){
-			log.error('ビルド元フォルダにconfig.jsonがありません');
-			if( isRequired ) return;
-		}
-
-		if( srcPathFilesForValidation.indexOf('data') == -1 || !fs.statSync(path.join(srcPath, 'data')).isDirectory() ){
-			log.error('ビルド元フォルダにdataフォルダがありません');
-			if( isRequired ) return;
-		}
-
-		if( !command.package ){
-			// build
-
-			if( fs.existsSync(destPath) ){
-				if( fs.statSync(destPath).isDirectory() ){
-					var destPathFiles = fs.readdirSync(destPath);
-					var destPathFilesForValidation = [];
-					for( var key in destPathFiles ){
-						destPathFilesForValidation.push(destPathFiles[key].toLowerCase());
-					}
-					if( destPathFilesForValidation.indexOf('script.js') == -1 ){
-						log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
-						if( isRequired ) return;
-					}
-				} else {
-					log.error('指定されたビルド先にファイルが存在します');
+		if( fs.existsSync(destPath) ){
+			if( fs.statSync(destPath).isDirectory() ){
+				var destPathFiles = fs.readdirSync(destPath);
+				var destPathFilesForValidation = [];
+				for( var key in destPathFiles ){
+					destPathFilesForValidation.push(destPathFiles[key].toLowerCase());
+				}
+				if( destPathFilesForValidation.indexOf('script.js') == -1 ){
+					log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
 					if( isRequired ) return;
 				}
 			} else {
+				log.error('指定されたビルド先にファイルが存在します');
+				if( isRequired ) return;
+			}
+		} else {
+			try {
+				fs.mkdirSync(destPath);
+				log.message('ビルド先フォルダを作成しました');
+			} catch(e) {
+				log.error('ビルド先フォルダの作成に失敗しました');
+				if( isRequired ) return;
+			}
+		}
+
+		var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
+		var ksFiles = [];
+		var ksRegexp = new RegExp('.*\\.\(ks\|asd\)$', 'i');
+
+		srcPathAllFiles.filter(function(file){
+			return fs.statSync(file).isFile() && ksRegexp.test(file);
+		}).forEach(function(file){
+			ksFiles.push(file);
+		});
+
+		var configFile = path.join(srcPath, 'config.json');
+		var configContent = fs.readFileSync(configFile);
+
+		try {
+			var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]+?\*\//g, '').replace(/\/\/.*/g, ''));
+		} catch(e) {
+			log.error('config.jsonの書式が正しくありません:\n' + e);
+			if( isRequired ) return;
+		}
+
+		builder.configure({
+			legacy : command.kag3 ? true : false,
+			release : command.release ? true : false
+		});
+		try {
+			var resultScript = builder.parseFiles(ksFiles);
+		} catch(e) {
+			log.error('スクリプトのコンパイル中にエラーが発生しました:\n' + e);
+			if( isRequired ) return;
+		}
+
+		if( resultScript.warnings.length > 0 ){
+			log.warn('スクリプトのコンパイル中に警告が発生しました:');
+			for( var key in resultScript.warnings ){
+				log.warn(resultScript.warnings[key]);
+			}
+		}
+
+		var script = {'scripts': resultScript['scripts'], 'config': resultConfig};
+
+		log.message('スクリプトのコンパイルを完了しました');
+
+		var mkdirFolders = ['image', 'sound', 'video', 'font'];
+		for( var key in mkdirFolders ){
+			var mkdirFolder = path.join(destPath, mkdirFolders[key]);
+			if( !fs.existsSync(mkdirFolder) ){
 				try {
-					fs.mkdirSync(destPath);
-					log.message('ビルド先フォルダを作成しました');
+					fs.mkdirSync(mkdirFolder);
 				} catch(e) {
-					log.error('ビルド先フォルダの作成に失敗しました');
+					log.error('ビルド先フォルダに必要なフォルダの作成に失敗しました');
+					if( isRequired ) return;
+				}
+			} else {
+				if( fs.statSync(mkdirFolder).isFile() ){
+					log.error('ビルド先フォルダの構造が予期されたものと異なります');
 					if( isRequired ) return;
 				}
 			}
+		}
 
-			var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
-			var ksFiles = [];
-			var ksRegexp = new RegExp('.*\\.\(ks\|asd\)$', 'i');
+		log.message('ビルド先フォルダに必要なフォルダを作成しました');
 
-			srcPathAllFiles.filter(function(file){
-				return fs.statSync(file).isFile() && ksRegexp.test(file);
-			}).forEach(function(file){
-				ksFiles.push(file);
-			});
+		var dataPath = path.join(srcPath, 'data');
+		var safeList = [];
+		setupResource(srcPath, destPath, EXTENSIONS.IMAGE, 'image', safeList, false, command.force, function(imagelist){
+			setupResource(srcPath, destPath, EXTENSIONS.SOUND, 'sound', safeList, true, command.force, function(soundlist){
+				setupResource(srcPath, destPath, EXTENSIONS.VIDEO, 'video', safeList, true, command.force, function(videolist){
+					setupResource(srcPath, destPath, EXTENSIONS.FONT, 'font', safeList, true, command.force, function(fontlist){
 
-			var configFile = path.join(srcPath, 'config.json');
-			var configContent = fs.readFileSync(configFile);
+						log.message('ストレージのコピーとストレージ一覧の生成が完了しました');
 
-			try {
-				var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]+?\*\//g, '').replace(/\/\/.*/g, ''));
-			} catch(e) {
-				log.error('config.jsonの書式が正しくありません:\n' + e);
-				if( isRequired ) return;
-			}
-
-			builder.configure({
-				legacy : command.kag3 ? true : false,
-				release : command.release ? true : false
-			});
-			try {
-				var resultScript = builder.parseFiles(ksFiles);
-			} catch(e) {
-				log.error('スクリプトのコンパイル中にエラーが発生しました:\n' + e);
-				if( isRequired ) return;
-			}
-
-			if( resultScript.warnings.length > 0 ){
-				log.warn('スクリプトのコンパイル中に警告が発生しました:');
-				for( var key in resultScript.warnings ){
-					log.warn(resultScript.warnings[key]);
-				}
-			}
-
-			var script = {'scripts': resultScript['scripts'], 'config': resultConfig};
-
-			log.message('スクリプトのコンパイルを完了しました');
-
-			var mkdirFolders = ['image', 'sound', 'video', 'font'];
-			for( var key in mkdirFolders ){
-				var mkdirFolder = path.join(destPath, mkdirFolders[key]);
-				if( !fs.existsSync(mkdirFolder) ){
-					try {
-						fs.mkdirSync(mkdirFolder);
-					} catch(e) {
-						log.error('ビルド先フォルダに必要なフォルダの作成に失敗しました');
-						if( isRequired ) return;
-					}
-				} else {
-					if( fs.statSync(mkdirFolder).isFile() ){
-						log.error('ビルド先フォルダの構造が予期されたものと異なります');
-						if( isRequired ) return;
-					}
-				}
-			}
-
-			log.message('ビルド先フォルダに必要なフォルダを作成しました');
-
-			var dataPath = path.join(srcPath, 'data');
-			var safeList = [];
-			setupResource(srcPath, destPath, EXTENSIONS.IMAGE, 'image', safeList, false, command.force, function(imagelist){
-				setupResource(srcPath, destPath, EXTENSIONS.SOUND, 'sound', safeList, true, command.force, function(soundlist){
-					setupResource(srcPath, destPath, EXTENSIONS.VIDEO, 'video', safeList, true, command.force, function(videolist){
-						setupResource(srcPath, destPath, EXTENSIONS.FONT, 'font', safeList, true, command.force, function(fontlist){
-
-							log.message('ストレージのコピーとストレージ一覧の生成が完了しました');
-
-							var unlinkFiles = ['script.js', 'script.json', 'index.html'];
-							for( var key in unlinkFiles ){
-								var unlinkFile = path.join(destPath, unlinkFiles[key]);
-								if( fs.existsSync(unlinkFile) && fs.statSync(unlinkFile).isFile() ){
-									fs.unlinkSync(unlinkFile);
-								}
+						var unlinkFiles = ['script.js', 'script.json', 'index.html'];
+						for( var key in unlinkFiles ){
+							var unlinkFile = path.join(destPath, unlinkFiles[key]);
+							if( fs.existsSync(unlinkFile) && fs.statSync(unlinkFile).isFile() ){
+								fs.unlinkSync(unlinkFile);
 							}
+						}
 
-							log.message('ビルド先フォルダの不要ファイルを削除しました');
+						log.message('ビルド先フォルダの不要ファイルを削除しました');
 
-							var destEngineFolder = path.join(destPath, 'engine');
-							var destPluginFolder = path.join(destPath, 'plugin');
-							if( fs.existsSync(destEngineFolder) ){
-								try {
-									fsex.rmdirRSync(destEngineFolder);
-									log.message('ビルド先フォルダ内の古いO₂ Engineを削除しました');
-								} catch(e) {
-									log.message('ビルド先フォルダ内の古いO₂ Engineの削除に失敗しました');
-								}
-							}
-							if( fs.existsSync(destPluginFolder) ){
-								try {
-									fsex.rmdirRSync(destPluginFolder);
-									log.message('ビルド先フォルダ内の古いプラグインを削除しました');
-								} catch(e) {
-									log.message('ビルド先フォルダ内の古いプラグインの削除に失敗しました');
-								}
-							}
-
-							exportScript(script, {
-								'imagelist': imagelist,
-								'soundlist': soundlist,
-								'videolist': videolist,
-								'fontlist': fontlist
-							}, destPath, command.o2server, command.splitfiles);
-
-							log.message('ビルド先フォルダにスクリプトを書き出しました');
-
+						var destEngineFolder = path.join(destPath, 'engine');
+						var destPluginFolder = path.join(destPath, 'plugin');
+						if( fs.existsSync(destEngineFolder) ){
 							try {
-								fsex.copyRSync(enginePath, path.join(destPath, 'engine'));
-								fs.renameSync(path.join(destPath, 'engine', 'index.html'), path.join(destPath, 'index.html'));
-								log.message('ビルド先フォルダにO₂ Engineを設置しました');
+								fsex.rmdirRSync(destEngineFolder);
+								log.message('ビルド先フォルダ内の古いO₂ Engineを削除しました');
 							} catch(e) {
-								log.error('ビルド先フォルダへのO₂ Engineの設置に失敗しました');
+								log.message('ビルド先フォルダ内の古いO₂ Engineの削除に失敗しました');
+							}
+						}
+						if( fs.existsSync(destPluginFolder) ){
+							try {
+								fsex.rmdirRSync(destPluginFolder);
+								log.message('ビルド先フォルダ内の古いプラグインを削除しました');
+							} catch(e) {
+								log.message('ビルド先フォルダ内の古いプラグインの削除に失敗しました');
+							}
+						}
+
+						exportScript(script, {
+							'imagelist': imagelist,
+							'soundlist': soundlist,
+							'videolist': videolist,
+							'fontlist': fontlist
+						}, destPath, command.o2server, command.splitfiles);
+
+						log.message('ビルド先フォルダにスクリプトを書き出しました');
+
+						try {
+							fsex.copyRSync(enginePath, path.join(destPath, 'engine'));
+							fs.renameSync(path.join(destPath, 'engine', 'index.html'), path.join(destPath, 'index.html'));
+							log.message('ビルド先フォルダにO₂ Engineを設置しました');
+						} catch(e) {
+							log.error('ビルド先フォルダへのO₂ Engineの設置に失敗しました');
+							if( isRequired ) return;
+						}
+
+						var srcPluginFolder = path.join(srcPath, 'plugin');
+						if( fs.existsSync(srcPluginFolder) ){
+							try {
+								fsex.copyRSync(srcPluginFolder, destPluginFolder);
+								log.message('ビルド先フォルダにプラグインを設置しました');
+							} catch(e) {
+								log.error('ビルド先フォルダへのプラグインの設置に失敗しました');
 								if( isRequired ) return;
 							}
+						}
 
-							var srcPluginFolder = path.join(srcPath, 'plugin');
-							if( fs.existsSync(srcPluginFolder) ){
-								try {
-									fsex.copyRSync(srcPluginFolder, destPluginFolder);
-									log.message('ビルド先フォルダにプラグインを設置しました');
-								} catch(e) {
-									log.error('ビルド先フォルダへのプラグインの設置に失敗しました');
-									if( isRequired ) return;
-								}
-							}
+						log.end('ビルドを完了しました');
 
-							log.end('ビルドを完了しました');
+						if( callback ){
+							callback(null);
+						}
 
-							if( callback ){
-								callback(null);
-							}
-
-						});
 					});
 				});
 			});
+		});
 
-		} else {
-			// package
-
-			log.message('パッケージング中です');
-
-			var zip = new AdmZip();
-			zip.addLocalFolder(srcPath);
-
-			var buf = zip.toBuffer(function(buf){
-				log.message('ZIPファイルの書き出し中です');
-
-				fs.writeFile(destPath, buf, function(){
-
-					log.end('パッケージングを完了しました');
-
-					if( callback ){
-						callback(null);
-					}
-				});
-			}, function(err){
-				log.error('パッケージングに失敗しました');
-				if( isRequired ) return;
-			}, function(filename){
-			}, function(filename){
-				log.message('圧縮:' + filename);
-			});
-
-		}
+		// インデント
 	}
 
+
+	/*
+		@name: version
+		@description: バージョンを返す
+	*/
 	this.version = function(){
 		var version = packageJson.version;
-
 		return version;
 	};
 
-	// セットアップ状態のチェック
+
+	/*
+		@name: setupValidation
+		@description: セットアップ状態のチェック
+	*/
 	this.setupValidation = function(args, isRequired){
 		// コマンドの引数に問題がある場合のエラー
 		if( 2 < args.length || args.length < 2 ){
@@ -341,30 +311,76 @@ var Builder3 = function(){
 
 		if( !fs.existsSync(srcPath) ){
 			log.error('ビルド元フォルダがありません');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if( !fs.statSync(srcPath).isDirectory() ){
 			log.error('指定されたビルド元がフォルダでありません');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if ( srcPath == destPath ){
 			log.error('ビルド元とビルド先が同じフォルダです');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if ( srcPath.indexOf(destPath) != -1 ){
 			log.error('ビルド元フォルダがビルド先フォルダの内部です');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if ( destPath.indexOf(srcPath) != -1 ){
 			log.error('ビルド先フォルダがビルド元フォルダの内部です');
-			if( isRequired ) return;
+			if( isRequired ) return false;
+		}
+
+		srcPathFiles = fs.readdirSync(srcPath);
+		var srcPathFilesForValidation = [];
+		for( var key in srcPathFiles ){
+			srcPathFilesForValidation.push(srcPathFiles[key].toLowerCase());
+		}
+
+		if( srcPathFilesForValidation.indexOf('config.json') == -1 || !fs.statSync(path.join(srcPath, 'config.json')).isFile() ){
+			log.error('ビルド元フォルダにconfig.jsonがありません');
+			if( isRequired ) return false;
+		}
+
+		if( srcPathFilesForValidation.indexOf('data') == -1 || !fs.statSync(path.join(srcPath, 'data')).isDirectory() ){
+			log.error('ビルド元フォルダにdataフォルダがありません');
+			if( isRequired ) return false;
 		}
 
 		return true;
+	};
+
+	/*
+		@name: execPackage
+		@description: Zip Archive
+	*/
+	this.execPackage = function(){
+		log.message('パッケージング中です');
+
+		var zip = new AdmZip();
+		zip.addLocalFolder(srcPath);
+
+		var buf = zip.toBuffer(function(buf){
+			log.message('ZIPファイルの書き出し中です');
+
+			fs.writeFile(destPath, buf, function(){
+
+				log.end('パッケージングを完了しました');
+
+				if( callback ){
+					callback(null);
+				}
+			});
+		}, function(err){
+			log.error('パッケージングに失敗しました');
+			if( isRequired ) return;
+		}, function(filename){
+		}, function(filename){
+			log.message('圧縮:' + filename);
+		});
 	};
 
 	function setupResource(srcDir, destDir, extensions, type, safeList, removeExtension, isForce, cb){
