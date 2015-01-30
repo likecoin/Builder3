@@ -23,7 +23,8 @@ var Builder3 = function(){
 		enginePath,
 		wrapperPath,
 		engineVersion,
-		wrapperVersion;
+		wrapperVersion,
+		isRequired;
 
 	var ENGINES_PATH = './engines',
 		WRAPPERS_PATH = './wrappers',
@@ -36,7 +37,7 @@ var Builder3 = function(){
 
 	this.run = function(options, logger, callback){
 
-		var isRequired = (typeof module === 'undefined' || require.main !== module);
+		isRequired = (typeof module === 'undefined' || require.main !== module);
 
 		if( !logger ){
 			// when called from command-line
@@ -62,79 +63,8 @@ var Builder3 = function(){
 		}
 
 		// セットアップの状態をチェック
-		// TODO: リファクタ中
+		// FIXME: リファクタ中
 		if( ! this.setupValidation(command.args, isRequired)) return false;
-
-		// ビルドするパッケージが不整合な場合のエラー
-		if( !command.package ){
-
-			if( command.engines ){
-				if( !fs.existsSync(command.engines) || !fs.statSync(command.engines).isDirectory() ){
-					log.error('指定されたenginesフォルダがありません');
-					if( isRequired ) return;
-				} else {
-					ENGINES_PATH = command.engines;
-				}
-			}
-
-			if( !fs.existsSync(ENGINES_PATH) || !fs.statSync(ENGINES_PATH).isDirectory() ){
-				log.error('enginesフォルダがありません');
-				if( isRequired ) return;
-			}
-
-			if( !command.engine ){
-				log.error('エンジンのバージョン指定がありません');
-				if( isRequired ) return;
-			} else {
-				engineVersion = command.engine;
-			}
-
-			enginePath = path.join(ENGINES_PATH, engineVersion);
-
-			if( !fs.existsSync(enginePath) || !fs.statSync(enginePath).isDirectory() ){
-				log.error('指定されたバージョンのエンジンがありません');
-				if( isRequired ) return;
-			}
-
-			if( command.wrapper ){
-				wrapperVersion = command.wrapper;
-			}
-		}
-		// テスト
-
-		srcPath = path.normalize(command.args[0] + '/');
-
-		// オプションに問題がある場合のエラー
-		if( command.package ){
-			destPath = path.normalize(command.args[1]);
-		} else {
-			destPath = path.normalize(command.args[1] + '/');
-		}
-
-		if( !fs.existsSync(srcPath) ){
-			log.error('ビルド元フォルダがありません');
-			if( isRequired ) return;
-		}
-
-		if( !fs.statSync(srcPath).isDirectory() ){
-			log.error('指定されたビルド元がフォルダでありません');
-			if( isRequired ) return;
-		}
-
-		if ( srcPath == destPath ){
-			log.error('ビルド元とビルド先が同じフォルダです');
-			if( isRequired ) return;
-		}
-
-		if ( srcPath.indexOf(destPath) != -1 ){
-			log.error('ビルド元フォルダがビルド先フォルダの内部です');
-			if( isRequired ) return;
-		}
-
-		if ( destPath.indexOf(srcPath) != -1 ){
-			log.error('ビルド先フォルダがビルド元フォルダの内部です');
-			if( isRequired ) return;
-		}
 
 		var srcPathFiles = fs.readdirSync(srcPath);
 		var srcPathFilesForValidation = [];
@@ -363,6 +293,77 @@ var Builder3 = function(){
 			log.error('引数の数に誤りがあります');
 			if( isRequired ) return false;
 		}
+
+		// ビルドするパッケージが不整合な場合のエラー
+		if( !command.package ){
+
+			if( command.engines ){
+				if( !fs.existsSync(command.engines) || !fs.statSync(command.engines).isDirectory() ){
+					log.error('指定されたenginesフォルダがありません');
+					if( isRequired ) return false;
+				} else {
+					ENGINES_PATH = command.engines;
+				}
+			}
+
+			if( !fs.existsSync(ENGINES_PATH) || !fs.statSync(ENGINES_PATH).isDirectory() ){
+				log.error('enginesフォルダがありません');
+				if( isRequired ) return false;
+			}
+
+			if( !command.engine ){
+				log.error('エンジンのバージョン指定がありません');
+				if( isRequired ) return false;
+			} else {
+				engineVersion = command.engine;
+			}
+
+			enginePath = path.join(ENGINES_PATH, engineVersion);
+
+			if( !fs.existsSync(enginePath) || !fs.statSync(enginePath).isDirectory() ){
+				log.error('指定されたバージョンのエンジンがありません');
+				if( isRequired ) return false;
+			}
+
+			if( command.wrapper ){
+				wrapperVersion = command.wrapper;
+			}
+		}
+
+		srcPath = path.normalize(command.args[0] + '/');
+
+		// オプションに問題がある場合のエラー
+		if( command.package ){
+			destPath = path.normalize(command.args[1]);
+		} else {
+			destPath = path.normalize(command.args[1] + '/');
+		}
+
+		if( !fs.existsSync(srcPath) ){
+			log.error('ビルド元フォルダがありません');
+			if( isRequired ) return;
+		}
+
+		if( !fs.statSync(srcPath).isDirectory() ){
+			log.error('指定されたビルド元がフォルダでありません');
+			if( isRequired ) return;
+		}
+
+		if ( srcPath == destPath ){
+			log.error('ビルド元とビルド先が同じフォルダです');
+			if( isRequired ) return;
+		}
+
+		if ( srcPath.indexOf(destPath) != -1 ){
+			log.error('ビルド元フォルダがビルド先フォルダの内部です');
+			if( isRequired ) return;
+		}
+
+		if ( destPath.indexOf(srcPath) != -1 ){
+			log.error('ビルド先フォルダがビルド元フォルダの内部です');
+			if( isRequired ) return;
+		}
+
 		return true;
 	};
 
