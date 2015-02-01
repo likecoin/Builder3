@@ -25,7 +25,8 @@ var Builder3 = function(){
 		srcPathFiles,
 		srcPath,
 		wrapperPath,
-		wrapperVersion;
+		wrapperVersion,
+		completeScript;
 
 	var ENGINES_PATH = './engines',
 		WRAPPERS_PATH = './wrappers',
@@ -75,52 +76,11 @@ var Builder3 = function(){
 		// ビルド前のセットアップ
 		if( ! this.buildSetup()) return false;
 
-		// FIXME: 以下リファクタ中
-		// build
+		// コンパイル
+		if( ! this.execCompile()) return false;
 
-		var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
-		var ksFiles = [];
-		var ksRegexp = new RegExp('.*\\.\(ks\|asd\)$', 'i');
-
-		srcPathAllFiles.filter(function(file){
-			return fs.statSync(file).isFile() && ksRegexp.test(file);
-		}).forEach(function(file){
-			ksFiles.push(file);
-		});
-
-		var configFile = path.join(srcPath, 'config.json');
-		var configContent = fs.readFileSync(configFile);
-
-		try {
-			var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]+?\*\//g, '').replace(/\/\/.*/g, ''));
-		} catch(e) {
-			log.error('config.jsonの書式が正しくありません:\n' + e);
-			if( isRequired ) return;
-		}
-
-		builder.configure({
-			legacy : command.kag3 ? true : false,
-			release : command.release ? true : false
-		});
-		try {
-			var resultScript = builder.parseFiles(ksFiles);
-		} catch(e) {
-			log.error('スクリプトのコンパイル中にエラーが発生しました:\n' + e);
-			if( isRequired ) return;
-		}
-
-		if( resultScript.warnings.length > 0 ){
-			log.warn('スクリプトのコンパイル中に警告が発生しました:');
-			for( var key in resultScript.warnings ){
-				log.warn(resultScript.warnings[key]);
-			}
-		}
-
-		var script = {'scripts': resultScript['scripts'], 'config': resultConfig};
-
-		log.message('スクリプトのコンパイルを完了しました');
-
-		if( ! this.assetsCopy(script)) return false;
+		// アセットのコピー
+		if( ! this.execCopyAssets()) return false;
 	}
 
 
@@ -303,7 +263,7 @@ var Builder3 = function(){
 		return true;
 	};
 
-	this.assetsCopy = function(script){
+	this.execCopyAssets = function(){
 		var mkdirFolders = ['image', 'sound', 'video', 'font'];
 		for( var key in mkdirFolders ){
 			var mkdirFolder = path.join(destPath, mkdirFolders[key]);
@@ -362,7 +322,7 @@ var Builder3 = function(){
 							}
 						}
 
-						exportScript(script, {
+						exportScript(completeScript, {
 							'imagelist': imagelist,
 							'soundlist': soundlist,
 							'videolist': videolist,
@@ -402,6 +362,53 @@ var Builder3 = function(){
 			});
 		});
 	};
+
+	this.execCompile = function(){
+
+		var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
+		var ksFiles = [];
+		var ksRegexp = new RegExp('.*\\.\(ks\|asd\)$', 'i');
+
+		srcPathAllFiles.filter(function(file){
+			return fs.statSync(file).isFile() && ksRegexp.test(file);
+		}).forEach(function(file){
+			ksFiles.push(file);
+		});
+
+		var configFile = path.join(srcPath, 'config.json');
+		var configContent = fs.readFileSync(configFile);
+
+		try {
+			var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]+?\*\//g, '').replace(/\/\/.*/g, ''));
+		} catch(e) {
+			log.error('config.jsonの書式が正しくありません:\n' + e);
+			if( isRequired ) return false;
+		}
+
+		builder.configure({
+			legacy : command.kag3 ? true : false,
+			release : command.release ? true : false
+		});
+		try {
+			var resultScript = builder.parseFiles(ksFiles);
+		} catch(e) {
+			log.error('スクリプトのコンパイル中にエラーが発生しました:\n' + e);
+			if( isRequired ) return false;
+		}
+
+		if( resultScript.warnings.length > 0 ){
+			log.warn('スクリプトのコンパイル中に警告が発生しました:');
+			for( var key in resultScript.warnings ){
+				log.warn(resultScript.warnings[key]);
+			}
+		}
+
+		completeScript = {'scripts': resultScript['scripts'], 'config': resultConfig};
+
+		log.message('スクリプトのコンパイルを完了しました');
+
+		return true;
+	}
 
 	function setupResource(srcDir, destDir, extensions, type, safeList, removeExtension, isForce, cb){
 
