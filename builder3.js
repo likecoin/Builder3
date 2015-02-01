@@ -312,12 +312,12 @@ var Builder3 = function(){
 					fs.mkdirSync(mkdirFolder);
 				} catch(e) {
 					log.error('ビルド先フォルダに必要なフォルダの作成に失敗しました');
-					if( isRequired ) return;
+					if( isRequired ) return false;
 				}
 			} else {
 				if( fs.statSync(mkdirFolder).isFile() ){
 					log.error('ビルド先フォルダの構造が予期されたものと異なります');
-					if( isRequired ) return;
+					if( isRequired ) return false;
 				}
 			}
 		}
@@ -377,7 +377,7 @@ var Builder3 = function(){
 							log.message('ビルド先フォルダにO₂ Engineを設置しました');
 						} catch(e) {
 							log.error('ビルド先フォルダへのO₂ Engineの設置に失敗しました');
-							if( isRequired ) return;
+							if( isRequired ) return false;
 						}
 
 						var srcPluginFolder = path.join(srcPath, 'plugin');
@@ -387,7 +387,7 @@ var Builder3 = function(){
 								log.message('ビルド先フォルダにプラグインを設置しました');
 							} catch(e) {
 								log.error('ビルド先フォルダへのプラグインの設置に失敗しました');
-								if( isRequired ) return;
+								if( isRequired ) return false;
 							}
 						}
 
