@@ -72,32 +72,11 @@ var Builder3 = function(){
 			return true;
 		}
 
+		// ビルド前のセットアップ
+		if( ! this.buildSetup()) return false;
+
 		// FIXME: 以下リファクタ中
 		// build
-		if( fs.existsSync(destPath) ){
-			if( fs.statSync(destPath).isDirectory() ){
-				var destPathFiles = fs.readdirSync(destPath);
-				var destPathFilesForValidation = [];
-				for( var key in destPathFiles ){
-					destPathFilesForValidation.push(destPathFiles[key].toLowerCase());
-				}
-				if( destPathFilesForValidation.indexOf('script.js') == -1 ){
-					log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
-					if( isRequired ) return;
-				}
-			} else {
-				log.error('指定されたビルド先にファイルが存在します');
-				if( isRequired ) return;
-			}
-		} else {
-			try {
-				fs.mkdirSync(destPath);
-				log.message('ビルド先フォルダを作成しました');
-			} catch(e) {
-				log.error('ビルド先フォルダの作成に失敗しました');
-				if( isRequired ) return;
-			}
-		}
 
 		var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
 		var ksFiles = [];
@@ -379,6 +358,44 @@ var Builder3 = function(){
 		}, function(filename){
 			log.message('圧縮:' + filename);
 		});
+
+		return true;
+	};
+
+	/*
+		@name: buildSetup
+		@description: make時のフォルダを用意したり
+	*/
+	this.buildSetup = function(){
+
+		if( ! fs.existsSync(destPath) ){
+			try {
+				fs.mkdirSync(destPath);
+				log.message('ビルド先フォルダを作成しました');
+				return true;
+			} catch(e) {
+				log.error('ビルド先フォルダの作成に失敗しました');
+				if( isRequired ) return false;
+			}
+		}
+
+		if( ! fs.statSync(destPath).isDirectory() ){
+			log.error('指定されたビルド先にファイルが存在します');
+			if( isRequired ) return false;
+			return true;
+		}
+
+		var destPathFiles = fs.readdirSync(destPath);
+		var destPathFilesForValidation = [];
+
+		for( var key in destPathFiles ){
+			destPathFilesForValidation.push(destPathFiles[key].toLowerCase());
+		}
+
+		if( destPathFilesForValidation.indexOf('script.js') == -1 ){
+			log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
+			if( isRequired ) return false;
+		}
 
 		return true;
 	};
