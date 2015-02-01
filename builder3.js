@@ -120,104 +120,7 @@ var Builder3 = function(){
 
 		log.message('スクリプトのコンパイルを完了しました');
 
-		var mkdirFolders = ['image', 'sound', 'video', 'font'];
-		for( var key in mkdirFolders ){
-			var mkdirFolder = path.join(destPath, mkdirFolders[key]);
-			if( !fs.existsSync(mkdirFolder) ){
-				try {
-					fs.mkdirSync(mkdirFolder);
-				} catch(e) {
-					log.error('ビルド先フォルダに必要なフォルダの作成に失敗しました');
-					if( isRequired ) return;
-				}
-			} else {
-				if( fs.statSync(mkdirFolder).isFile() ){
-					log.error('ビルド先フォルダの構造が予期されたものと異なります');
-					if( isRequired ) return;
-				}
-			}
-		}
-
-		log.message('ビルド先フォルダに必要なフォルダを作成しました');
-
-		var dataPath = path.join(srcPath, 'data');
-		var safeList = [];
-		setupResource(srcPath, destPath, EXTENSIONS.IMAGE, 'image', safeList, false, command.force, function(imagelist){
-			setupResource(srcPath, destPath, EXTENSIONS.SOUND, 'sound', safeList, true, command.force, function(soundlist){
-				setupResource(srcPath, destPath, EXTENSIONS.VIDEO, 'video', safeList, true, command.force, function(videolist){
-					setupResource(srcPath, destPath, EXTENSIONS.FONT, 'font', safeList, true, command.force, function(fontlist){
-
-						log.message('ストレージのコピーとストレージ一覧の生成が完了しました');
-
-						var unlinkFiles = ['script.js', 'script.json', 'index.html'];
-						for( var key in unlinkFiles ){
-							var unlinkFile = path.join(destPath, unlinkFiles[key]);
-							if( fs.existsSync(unlinkFile) && fs.statSync(unlinkFile).isFile() ){
-								fs.unlinkSync(unlinkFile);
-							}
-						}
-
-						log.message('ビルド先フォルダの不要ファイルを削除しました');
-
-						var destEngineFolder = path.join(destPath, 'engine');
-						var destPluginFolder = path.join(destPath, 'plugin');
-						if( fs.existsSync(destEngineFolder) ){
-							try {
-								fsex.rmdirRSync(destEngineFolder);
-								log.message('ビルド先フォルダ内の古いO₂ Engineを削除しました');
-							} catch(e) {
-								log.message('ビルド先フォルダ内の古いO₂ Engineの削除に失敗しました');
-							}
-						}
-						if( fs.existsSync(destPluginFolder) ){
-							try {
-								fsex.rmdirRSync(destPluginFolder);
-								log.message('ビルド先フォルダ内の古いプラグインを削除しました');
-							} catch(e) {
-								log.message('ビルド先フォルダ内の古いプラグインの削除に失敗しました');
-							}
-						}
-
-						exportScript(script, {
-							'imagelist': imagelist,
-							'soundlist': soundlist,
-							'videolist': videolist,
-							'fontlist': fontlist
-						}, destPath, command.o2server, command.splitfiles);
-
-						log.message('ビルド先フォルダにスクリプトを書き出しました');
-
-						try {
-							fsex.copyRSync(enginePath, path.join(destPath, 'engine'));
-							fs.renameSync(path.join(destPath, 'engine', 'index.html'), path.join(destPath, 'index.html'));
-							log.message('ビルド先フォルダにO₂ Engineを設置しました');
-						} catch(e) {
-							log.error('ビルド先フォルダへのO₂ Engineの設置に失敗しました');
-							if( isRequired ) return;
-						}
-
-						var srcPluginFolder = path.join(srcPath, 'plugin');
-						if( fs.existsSync(srcPluginFolder) ){
-							try {
-								fsex.copyRSync(srcPluginFolder, destPluginFolder);
-								log.message('ビルド先フォルダにプラグインを設置しました');
-							} catch(e) {
-								log.error('ビルド先フォルダへのプラグインの設置に失敗しました');
-								if( isRequired ) return;
-							}
-						}
-
-						log.end('ビルドを完了しました');
-
-						if( callback ){
-							callback(null);
-						}
-
-					});
-				});
-			});
-		});
-
+		if( ! this.assetsCopy(script)) return false;
 	}
 
 
@@ -398,6 +301,106 @@ var Builder3 = function(){
 		}
 
 		return true;
+	};
+
+	this.assetsCopy = function(script){
+		var mkdirFolders = ['image', 'sound', 'video', 'font'];
+		for( var key in mkdirFolders ){
+			var mkdirFolder = path.join(destPath, mkdirFolders[key]);
+			if( !fs.existsSync(mkdirFolder) ){
+				try {
+					fs.mkdirSync(mkdirFolder);
+				} catch(e) {
+					log.error('ビルド先フォルダに必要なフォルダの作成に失敗しました');
+					if( isRequired ) return;
+				}
+			} else {
+				if( fs.statSync(mkdirFolder).isFile() ){
+					log.error('ビルド先フォルダの構造が予期されたものと異なります');
+					if( isRequired ) return;
+				}
+			}
+		}
+
+		log.message('ビルド先フォルダに必要なフォルダを作成しました');
+
+		var dataPath = path.join(srcPath, 'data');
+		var safeList = [];
+		setupResource(srcPath, destPath, EXTENSIONS.IMAGE, 'image', safeList, false, command.force, function(imagelist){
+			setupResource(srcPath, destPath, EXTENSIONS.SOUND, 'sound', safeList, true, command.force, function(soundlist){
+				setupResource(srcPath, destPath, EXTENSIONS.VIDEO, 'video', safeList, true, command.force, function(videolist){
+					setupResource(srcPath, destPath, EXTENSIONS.FONT, 'font', safeList, true, command.force, function(fontlist){
+
+						log.message('ストレージのコピーとストレージ一覧の生成が完了しました');
+
+						var unlinkFiles = ['script.js', 'script.json', 'index.html'];
+						for( var key in unlinkFiles ){
+							var unlinkFile = path.join(destPath, unlinkFiles[key]);
+							if( fs.existsSync(unlinkFile) && fs.statSync(unlinkFile).isFile() ){
+								fs.unlinkSync(unlinkFile);
+							}
+						}
+
+						log.message('ビルド先フォルダの不要ファイルを削除しました');
+
+						var destEngineFolder = path.join(destPath, 'engine');
+						var destPluginFolder = path.join(destPath, 'plugin');
+						if( fs.existsSync(destEngineFolder) ){
+							try {
+								fsex.rmdirRSync(destEngineFolder);
+								log.message('ビルド先フォルダ内の古いO₂ Engineを削除しました');
+							} catch(e) {
+								log.message('ビルド先フォルダ内の古いO₂ Engineの削除に失敗しました');
+							}
+						}
+						if( fs.existsSync(destPluginFolder) ){
+							try {
+								fsex.rmdirRSync(destPluginFolder);
+								log.message('ビルド先フォルダ内の古いプラグインを削除しました');
+							} catch(e) {
+								log.message('ビルド先フォルダ内の古いプラグインの削除に失敗しました');
+							}
+						}
+
+						exportScript(script, {
+							'imagelist': imagelist,
+							'soundlist': soundlist,
+							'videolist': videolist,
+							'fontlist': fontlist
+						}, destPath, command.o2server, command.splitfiles);
+
+						log.message('ビルド先フォルダにスクリプトを書き出しました');
+
+						try {
+							fsex.copyRSync(enginePath, path.join(destPath, 'engine'));
+							fs.renameSync(path.join(destPath, 'engine', 'index.html'), path.join(destPath, 'index.html'));
+							log.message('ビルド先フォルダにO₂ Engineを設置しました');
+						} catch(e) {
+							log.error('ビルド先フォルダへのO₂ Engineの設置に失敗しました');
+							if( isRequired ) return;
+						}
+
+						var srcPluginFolder = path.join(srcPath, 'plugin');
+						if( fs.existsSync(srcPluginFolder) ){
+							try {
+								fsex.copyRSync(srcPluginFolder, destPluginFolder);
+								log.message('ビルド先フォルダにプラグインを設置しました');
+							} catch(e) {
+								log.error('ビルド先フォルダへのプラグインの設置に失敗しました');
+								if( isRequired ) return;
+							}
+						}
+
+						log.end('ビルドを完了しました');
+
+						if( callback ){
+							callback(null);
+						}
+
+					});
+				});
+			});
+		});
 	};
 
 	function setupResource(srcDir, destDir, extensions, type, safeList, removeExtension, isForce, cb){
