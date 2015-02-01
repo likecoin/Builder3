@@ -1,5 +1,3 @@
-
-// FIXME: constructorが長すぎるので細分化すべき
 var Builder3 = function(){
 
 	this.log;
