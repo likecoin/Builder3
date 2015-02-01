@@ -55,11 +55,17 @@ var Builder3 = function(){
 				.option('-p, --package', 'ノベルスフィア向けにパッケージング')
 				.option('-w, --wrapper [version]', '指定したバージョンのO₂ Wrapperでビルド')
 				.option('-W, --wrappers [path]', 'O₂ Wrapperの格納されたフォルダを指定')
+				.option('-N, --novelchan [id]', 'のべるちゃんのコンテンツをもってくる')
 				.parse(process.argv);
 		} else {
 			// when required
 			log = logger;
 			command = options;
+		}
+
+		// ノベルちゃんのコンテンツコンパイル
+		if( command.novelchan ){
+			this.execGetNovelchan();
 		}
 
 		// セットアップの状態をチェック
@@ -83,18 +89,26 @@ var Builder3 = function(){
 
 
 	/*
-		@name: version
-		@description: バージョンを返す
+	*	@name: version
+	*	@description: バージョンを返す
 	*/
 	this.version = function(){
 		var version = packageJson.version;
 		return version;
 	};
 
+	/*
+	* @name: execGetNovelchan
+	* @description: のべるちゃんのファイル取得
+	*/
+	this.execGetNovelchan = function(){
+		log.message('のべるちゃんロード');
+	};
+
 
 	/*
-		@name: setupValidation
-		@description: セットアップ状態のチェック
+	*	@name: setupValidation
+	*	@description: セットアップ状態のチェック
 	*/
 	this.setupValidation = function(args, isRequired){
 		// コマンドの引数に問題がある場合のエラー
@@ -194,8 +208,8 @@ var Builder3 = function(){
 
 
 	/*
-		@name: execPackage
-		@description: パッケージ作成
+	*	@name: execPackage
+	*	@description: パッケージ作成
 	*/
 	this.execPackage = function(){
 		log.message('パッケージング中です');
@@ -224,8 +238,8 @@ var Builder3 = function(){
 	};
 
 	/*
-		@name: buildSetup
-		@description: make時のフォルダを用意したり
+	*	@name: buildSetup
+	*	@description: make時のフォルダを用意したり
 	*/
 	this.buildSetup = function(){
 
@@ -261,6 +275,10 @@ var Builder3 = function(){
 		return true;
 	};
 
+	/*
+	* @name: execCopyAssets
+	* @description: 素材ファイルのコピー
+	*/
 	this.execCopyAssets = function(){
 		var mkdirFolders = ['image', 'sound', 'video', 'font'];
 		for( var key in mkdirFolders ){
@@ -361,6 +379,10 @@ var Builder3 = function(){
 		});
 	};
 
+	/*
+	* @name: execCompile
+	* @description: コンパイル
+	*/
 	this.execCompile = function(){
 
 		var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
