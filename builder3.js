@@ -84,7 +84,9 @@ var Builder3 = function(){
 		if( ! this.execCompile()) return false;
 
 		// アセットのコピー
-		if( ! this.execCopyAssets()) return false;
+		if( ! this.execCopyAssets(callback)) return false;
+
+		return true;
 	}
 
 
@@ -279,7 +281,7 @@ var Builder3 = function(){
 	* @name: execCopyAssets
 	* @description: 素材ファイルのコピー
 	*/
-	this.execCopyAssets = function(){
+	this.execCopyAssets = function(callback){
 		var mkdirFolders = ['image', 'sound', 'video', 'font'];
 		for( var key in mkdirFolders ){
 			var mkdirFolder = path.join(destPath, mkdirFolders[key]);
