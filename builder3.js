@@ -29,7 +29,7 @@ var Builder3 = function(){
 	var ENGINES_PATH = './engines',
 		WRAPPERS_PATH = './wrappers',
 		EXTENSIONS = {
-			IMAGE: ['png', 'jpeg', 'jpg'],
+			IMAGE: ['png', 'jpeg', 'jpg', 'gif'],
 			SOUND: ['ogg', 'mp4'],
 			VIDEO: ['mp4', 'ogv', 'webm'],
 			FONT: ['woff', 'ttf']
