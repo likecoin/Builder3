@@ -1,4 +1,3 @@
-
 var Builder3 = function(){
 
 	this.log;
@@ -7,22 +6,25 @@ var Builder3 = function(){
 		path = require('path'),
 		util = require('util'),
 		unorm = require('unorm'),
-		//zipdir = require('zip-dir'),
-		//command = require('commander'),
+		//zipdir = require('zip-dir'), // FIXME: 不要なら削除する
+		//command = require('commander'), // FIXME: 不要なら削除する
 		AdmZip = require('adm-zip'),
 		command,
 		builder = require('./nodejs/builder/builder.js'),
 		packageJson = require('./package.json'),
-		//log = require('./log.js'),
+		//log = require('./log.js'), // FIXME: 不要なら削除する
 		log,
 		fsex = require('./fsex.js');
 
-	var srcPath,
-		destPath,
+	var destPath,
 		enginePath,
-		wrapperPath,
 		engineVersion,
-		wrapperVersion;
+		isRequired,
+		srcPathFiles,
+		srcPath,
+		wrapperPath,
+		wrapperVersion,
+		completeScript;
 
 	var ENGINES_PATH = './engines',
 		WRAPPERS_PATH = './wrappers',
@@ -35,7 +37,7 @@ var Builder3 = function(){
 
 	this.run = function(options, logger, callback){
 
-		var isRequired = (typeof module === 'undefined' || require.main !== module);
+		isRequired = (typeof module === 'undefined' || require.main !== module);
 
 		if( !logger ){
 			// when called from command-line
@@ -53,6 +55,7 @@ var Builder3 = function(){
 				.option('-p, --package', 'ノベルスフィア向けにパッケージング')
 				.option('-w, --wrapper [version]', '指定したバージョンのO₂ Wrapperでビルド')
 				.option('-W, --wrappers [path]', 'O₂ Wrapperの格納されたフォルダを指定')
+				// .option('-N, --novelchan [id]', 'のべるちゃんのコンテンツをもってくる')
 				.parse(process.argv);
 		} else {
 			// when required
@@ -60,17 +63,67 @@ var Builder3 = function(){
 			command = options;
 		}
 
-		if( 2 < command.args.length || command.args.length < 2 ){
-			log.error('引数の数に誤りがあります');
-			if( isRequired ) return;
+		// ノベルちゃんのコンテンツコンパイル
+		//if( command.novelchan ){
+		//	this.execGetNovelchan();
+		//}
+
+		// セットアップの状態をチェック
+		if( ! this.setupValidation(command.args, isRequired)) return false;
+
+		// パッケージ作成
+		if( command.package ){
+			if( ! this.execPackage()) return false;
+			return true;
 		}
 
+		// ビルド前のセットアップ
+		if( ! this.buildSetup()) return false;
+
+		// コンパイル
+		if( ! this.execCompile()) return false;
+
+		// アセットのコピー
+		if( ! this.execCopyAssets()) return false;
+	}
+
+
+	/*
+	*	@name: version
+	*	@description: バージョンを返す
+	*/
+	this.version = function(){
+		var version = packageJson.version;
+		return version;
+	};
+
+	/*
+	* @name: execGetNovelchan
+	* @description: のべるちゃんのファイル取得
+	*/
+	this.execGetNovelchan = function(){
+		log.message('のべるちゃんロード');
+	};
+
+
+	/*
+	*	@name: setupValidation
+	*	@description: セットアップ状態のチェック
+	*/
+	this.setupValidation = function(args, isRequired){
+		// コマンドの引数に問題がある場合のエラー
+		if( 2 < args.length || args.length < 2 ){
+			log.error('引数の数に誤りがあります');
+			if( isRequired ) return false;
+		}
+
+		// ビルドするパッケージが不整合な場合のエラー
 		if( !command.package ){
 
 			if( command.engines ){
 				if( !fs.existsSync(command.engines) || !fs.statSync(command.engines).isDirectory() ){
 					log.error('指定されたenginesフォルダがありません');
-					if( isRequired ) return;
+					if( isRequired ) return false;
 				} else {
 					ENGINES_PATH = command.engines;
 				}
@@ -78,12 +131,12 @@ var Builder3 = function(){
 
 			if( !fs.existsSync(ENGINES_PATH) || !fs.statSync(ENGINES_PATH).isDirectory() ){
 				log.error('enginesフォルダがありません');
-				if( isRequired ) return;
+				if( isRequired ) return false;
 			}
 
 			if( !command.engine ){
 				log.error('エンジンのバージョン指定がありません');
-				if( isRequired ) return;
+				if( isRequired ) return false;
 			} else {
 				engineVersion = command.engine;
 			}
@@ -92,7 +145,7 @@ var Builder3 = function(){
 
 			if( !fs.existsSync(enginePath) || !fs.statSync(enginePath).isDirectory() ){
 				log.error('指定されたバージョンのエンジンがありません');
-				if( isRequired ) return;
+				if( isRequired ) return false;
 			}
 
 			if( command.wrapper ){
@@ -102,6 +155,7 @@ var Builder3 = function(){
 
 		srcPath = path.normalize(command.args[0] + '/');
 
+		// オプションに問題がある場合のエラー
 		if( command.package ){
 			destPath = path.normalize(command.args[1]);
 		} else {
@@ -110,30 +164,30 @@ var Builder3 = function(){
 
 		if( !fs.existsSync(srcPath) ){
 			log.error('ビルド元フォルダがありません');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if( !fs.statSync(srcPath).isDirectory() ){
 			log.error('指定されたビルド元がフォルダでありません');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if ( srcPath == destPath ){
 			log.error('ビルド元とビルド先が同じフォルダです');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if ( srcPath.indexOf(destPath) != -1 ){
 			log.error('ビルド元フォルダがビルド先フォルダの内部です');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if ( destPath.indexOf(srcPath) != -1 ){
 			log.error('ビルド先フォルダがビルド元フォルダの内部です');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
-		var srcPathFiles = fs.readdirSync(srcPath);
+		srcPathFiles = fs.readdirSync(srcPath);
 		var srcPathFilesForValidation = [];
 		for( var key in srcPathFiles ){
 			srcPathFilesForValidation.push(srcPathFiles[key].toLowerCase());
@@ -141,216 +195,239 @@ var Builder3 = function(){
 
 		if( srcPathFilesForValidation.indexOf('config.json') == -1 || !fs.statSync(path.join(srcPath, 'config.json')).isFile() ){
 			log.error('ビルド元フォルダにconfig.jsonがありません');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
 		if( srcPathFilesForValidation.indexOf('data') == -1 || !fs.statSync(path.join(srcPath, 'data')).isDirectory() ){
 			log.error('ビルド元フォルダにdataフォルダがありません');
-			if( isRequired ) return;
+			if( isRequired ) return false;
 		}
 
-		if( !command.package ){
-			// build
+		return true;
+	};
 
-			if( fs.existsSync(destPath) ){
-				if( fs.statSync(destPath).isDirectory() ){
-					var destPathFiles = fs.readdirSync(destPath);
-					var destPathFilesForValidation = [];
-					for( var key in destPathFiles ){
-						destPathFilesForValidation.push(destPathFiles[key].toLowerCase());
-					}
-					if( destPathFilesForValidation.indexOf('script.js') == -1 ){
-						log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
-						if( isRequired ) return;
-					}
-				} else {
-					log.error('指定されたビルド先にファイルが存在します');
-					if( isRequired ) return;
+
+	/*
+	*	@name: execPackage
+	*	@description: パッケージ作成
+	*/
+	this.execPackage = function(){
+		log.message('パッケージング中です');
+
+		var zip = new AdmZip();
+		zip.addLocalFolder(srcPath);
+
+		var buf = zip.toBuffer(function(buf){
+			log.message('ZIPファイルの書き出し中です');
+
+			fs.writeFile(destPath, buf, function(){
+				log.end('パッケージングを完了しました');
+				if( callback ){
+					callback(null);
+				}
+			});
+		}, function(err){
+			log.error('パッケージングに失敗しました');
+			if( isRequired ) return false;
+		}, function(filename){
+		}, function(filename){
+			log.message('圧縮:' + filename);
+		});
+
+		return true;
+	};
+
+	/*
+	*	@name: buildSetup
+	*	@description: make時のフォルダを用意したり
+	*/
+	this.buildSetup = function(){
+
+		if( ! fs.existsSync(destPath) ){
+			try {
+				fs.mkdirSync(destPath);
+				log.message('ビルド先フォルダを作成しました');
+				return true;
+			} catch(e) {
+				log.error('ビルド先フォルダの作成に失敗しました');
+				if( isRequired ) return false;
+			}
+		}
+
+		if( ! fs.statSync(destPath).isDirectory() ){
+			log.error('指定されたビルド先にファイルが存在します');
+			if( isRequired ) return false;
+			return true;
+		}
+
+		var destPathFiles = fs.readdirSync(destPath);
+		var destPathFilesForValidation = [];
+
+		for( var key in destPathFiles ){
+			destPathFilesForValidation.push(destPathFiles[key].toLowerCase());
+		}
+
+		if( destPathFilesForValidation.indexOf('script.js') == -1 ){
+			log.error('指定されたビルド先にすでに無関係なフォルダが存在します');
+			if( isRequired ) return false;
+		}
+
+		return true;
+	};
+
+	/*
+	* @name: execCopyAssets
+	* @description: 素材ファイルのコピー
+	*/
+	this.execCopyAssets = function(){
+		var mkdirFolders = ['image', 'sound', 'video', 'font'];
+		for( var key in mkdirFolders ){
+			var mkdirFolder = path.join(destPath, mkdirFolders[key]);
+			if( !fs.existsSync(mkdirFolder) ){
+				try {
+					fs.mkdirSync(mkdirFolder);
+				} catch(e) {
+					log.error('ビルド先フォルダに必要なフォルダの作成に失敗しました');
+					if( isRequired ) return false;
 				}
 			} else {
-				try {
-					fs.mkdirSync(destPath);
-					log.message('ビルド先フォルダを作成しました');
-				} catch(e) {
-					log.error('ビルド先フォルダの作成に失敗しました');
-					if( isRequired ) return;
+				if( fs.statSync(mkdirFolder).isFile() ){
+					log.error('ビルド先フォルダの構造が予期されたものと異なります');
+					if( isRequired ) return false;
 				}
 			}
+		}
 
-			var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
-			var ksFiles = [];
-			var ksRegexp = new RegExp('.*\\.\(ks\|asd\)$', 'i');
+		log.message('ビルド先フォルダに必要なフォルダを作成しました');
 
-			srcPathAllFiles.filter(function(file){
-				return fs.statSync(file).isFile() && ksRegexp.test(file);
-			}).forEach(function(file){
-				ksFiles.push(file);
-			});
+		var dataPath = path.join(srcPath, 'data');
+		var safeList = [];
+		setupResource(srcPath, destPath, EXTENSIONS.IMAGE, 'image', safeList, false, command.force, function(imagelist){
+			setupResource(srcPath, destPath, EXTENSIONS.SOUND, 'sound', safeList, true, command.force, function(soundlist){
+				setupResource(srcPath, destPath, EXTENSIONS.VIDEO, 'video', safeList, true, command.force, function(videolist){
+					setupResource(srcPath, destPath, EXTENSIONS.FONT, 'font', safeList, true, command.force, function(fontlist){
 
-			var configFile = path.join(srcPath, 'config.json');
-			var configContent = fs.readFileSync(configFile);
+						log.message('ストレージのコピーとストレージ一覧の生成が完了しました');
 
-			try {
-				var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]+?\*\//g, '').replace(/\/\/.*/g, ''));
-			} catch(e) {
-				log.error('config.jsonの書式が正しくありません:\n' + e);
-				if( isRequired ) return;
-			}
-
-			builder.configure({
-				legacy : command.kag3 ? true : false,
-				release : command.release ? true : false
-			});
-			try {
-				var resultScript = builder.parseFiles(ksFiles);
-			} catch(e) {
-				log.error('スクリプトのコンパイル中にエラーが発生しました:\n' + e);
-				if( isRequired ) return;
-			}
-
-			if( resultScript.warnings.length > 0 ){
-				log.warn('スクリプトのコンパイル中に警告が発生しました:');
-				for( var key in resultScript.warnings ){
-					log.warn(resultScript.warnings[key]);
-				}
-			}
-
-			var script = {'scripts': resultScript['scripts'], 'config': resultConfig};
-
-			log.message('スクリプトのコンパイルを完了しました');
-
-			var mkdirFolders = ['image', 'sound', 'video', 'font'];
-			for( var key in mkdirFolders ){
-				var mkdirFolder = path.join(destPath, mkdirFolders[key]);
-				if( !fs.existsSync(mkdirFolder) ){
-					try {
-						fs.mkdirSync(mkdirFolder);
-					} catch(e) {
-						log.error('ビルド先フォルダに必要なフォルダの作成に失敗しました');
-						if( isRequired ) return;
-					}
-				} else {
-					if( fs.statSync(mkdirFolder).isFile() ){
-						log.error('ビルド先フォルダの構造が予期されたものと異なります');
-						if( isRequired ) return;
-					}
-				}
-			}
-
-			log.message('ビルド先フォルダに必要なフォルダを作成しました');
-
-			var dataPath = path.join(srcPath, 'data');
-			var safeList = [];
-			setupResource(srcPath, destPath, EXTENSIONS.IMAGE, 'image', safeList, false, command.force, function(imagelist){
-				setupResource(srcPath, destPath, EXTENSIONS.SOUND, 'sound', safeList, true, command.force, function(soundlist){
-					setupResource(srcPath, destPath, EXTENSIONS.VIDEO, 'video', safeList, true, command.force, function(videolist){
-						setupResource(srcPath, destPath, EXTENSIONS.FONT, 'font', safeList, true, command.force, function(fontlist){
-
-							log.message('ストレージのコピーとストレージ一覧の生成が完了しました');
-
-							var unlinkFiles = ['script.js', 'script.json', 'index.html'];
-							for( var key in unlinkFiles ){
-								var unlinkFile = path.join(destPath, unlinkFiles[key]);
-								if( fs.existsSync(unlinkFile) && fs.statSync(unlinkFile).isFile() ){
-									fs.unlinkSync(unlinkFile);
-								}
+						var unlinkFiles = ['script.js', 'script.json', 'index.html'];
+						for( var key in unlinkFiles ){
+							var unlinkFile = path.join(destPath, unlinkFiles[key]);
+							if( fs.existsSync(unlinkFile) && fs.statSync(unlinkFile).isFile() ){
+								fs.unlinkSync(unlinkFile);
 							}
+						}
 
-							log.message('ビルド先フォルダの不要ファイルを削除しました');
+						log.message('ビルド先フォルダの不要ファイルを削除しました');
 
-							var destEngineFolder = path.join(destPath, 'engine');
-							var destPluginFolder = path.join(destPath, 'plugin');
-							if( fs.existsSync(destEngineFolder) ){
-								try {
-									fsex.rmdirRSync(destEngineFolder);
-									log.message('ビルド先フォルダ内の古いO₂ Engineを削除しました');
-								} catch(e) {
-									log.message('ビルド先フォルダ内の古いO₂ Engineの削除に失敗しました');
-								}
-							}
-							if( fs.existsSync(destPluginFolder) ){
-								try {
-									fsex.rmdirRSync(destPluginFolder);
-									log.message('ビルド先フォルダ内の古いプラグインを削除しました');
-								} catch(e) {
-									log.message('ビルド先フォルダ内の古いプラグインの削除に失敗しました');
-								}
-							}
-
-							exportScript(script, {
-								'imagelist': imagelist,
-								'soundlist': soundlist,
-								'videolist': videolist,
-								'fontlist': fontlist
-							}, destPath, command.o2server, command.splitfiles);
-
-							log.message('ビルド先フォルダにスクリプトを書き出しました');
-
+						var destEngineFolder = path.join(destPath, 'engine');
+						var destPluginFolder = path.join(destPath, 'plugin');
+						if( fs.existsSync(destEngineFolder) ){
 							try {
-								fsex.copyRSync(enginePath, path.join(destPath, 'engine'));
-								fs.renameSync(path.join(destPath, 'engine', 'index.html'), path.join(destPath, 'index.html'));
-								log.message('ビルド先フォルダにO₂ Engineを設置しました');
+								fsex.rmdirRSync(destEngineFolder);
+								log.message('ビルド先フォルダ内の古いO₂ Engineを削除しました');
 							} catch(e) {
-								log.error('ビルド先フォルダへのO₂ Engineの設置に失敗しました');
-								if( isRequired ) return;
+								log.message('ビルド先フォルダ内の古いO₂ Engineの削除に失敗しました');
 							}
-
-							var srcPluginFolder = path.join(srcPath, 'plugin');
-							if( fs.existsSync(srcPluginFolder) ){
-								try {
-									fsex.copyRSync(srcPluginFolder, destPluginFolder);
-									log.message('ビルド先フォルダにプラグインを設置しました');
-								} catch(e) {
-									log.error('ビルド先フォルダへのプラグインの設置に失敗しました');
-									if( isRequired ) return;
-								}
+						}
+						if( fs.existsSync(destPluginFolder) ){
+							try {
+								fsex.rmdirRSync(destPluginFolder);
+								log.message('ビルド先フォルダ内の古いプラグインを削除しました');
+							} catch(e) {
+								log.message('ビルド先フォルダ内の古いプラグインの削除に失敗しました');
 							}
+						}
 
-							log.end('ビルドを完了しました');
+						exportScript(completeScript, {
+							'imagelist': imagelist,
+							'soundlist': soundlist,
+							'videolist': videolist,
+							'fontlist': fontlist
+						}, destPath, command.o2server, command.splitfiles);
 
-							if( callback ){
-								callback(null);
+						log.message('ビルド先フォルダにスクリプトを書き出しました');
+
+						try {
+							fsex.copyRSync(enginePath, path.join(destPath, 'engine'));
+							fs.renameSync(path.join(destPath, 'engine', 'index.html'), path.join(destPath, 'index.html'));
+							log.message('ビルド先フォルダにO₂ Engineを設置しました');
+						} catch(e) {
+							log.error('ビルド先フォルダへのO₂ Engineの設置に失敗しました');
+							if( isRequired ) return false;
+						}
+
+						var srcPluginFolder = path.join(srcPath, 'plugin');
+						if( fs.existsSync(srcPluginFolder) ){
+							try {
+								fsex.copyRSync(srcPluginFolder, destPluginFolder);
+								log.message('ビルド先フォルダにプラグインを設置しました');
+							} catch(e) {
+								log.error('ビルド先フォルダへのプラグインの設置に失敗しました');
+								if( isRequired ) return false;
 							}
+						}
 
-						});
+						log.end('ビルドを完了しました');
+
+						if( callback ){
+							callback(null);
+						}
+
 					});
 				});
 			});
+		});
+	};
 
-		} else {
-			// package
+	/*
+	* @name: execCompile
+	* @description: コンパイル
+	*/
+	this.execCompile = function(){
 
-			log.message('パッケージング中です');
+		var srcPathAllFiles = fsex.readdirRSync(path.join(srcPath, 'data'));
+		var ksFiles = [];
+		var ksRegexp = new RegExp('.*\\.\(ks\|asd\)$', 'i');
 
-			var zip = new AdmZip();
-			zip.addLocalFolder(srcPath);
+		srcPathAllFiles.filter(function(file){
+			return fs.statSync(file).isFile() && ksRegexp.test(file);
+		}).forEach(function(file){
+			ksFiles.push(file);
+		});
 
-			var buf = zip.toBuffer(function(buf){
-				log.message('ZIPファイルの書き出し中です');
+		var configFile = path.join(srcPath, 'config.json');
+		var configContent = fs.readFileSync(configFile);
 
-				fs.writeFile(destPath, buf, function(){
-
-					log.end('パッケージングを完了しました');
-
-					if( callback ){
-						callback(null);
-					}
-				});
-			}, function(err){
-				log.error('パッケージングに失敗しました');
-				if( isRequired ) return;
-			}, function(filename){
-			}, function(filename){
-				log.message('圧縮:' + filename);
-			});
-
+		try {
+			var resultConfig = JSON.parse(configContent.toString('utf8').replace(/^\uFEFF/, '').replace(/\/\*[\s\S]+?\*\//g, '').replace(/\/\/.*/g, ''));
+		} catch(e) {
+			log.error('config.jsonの書式が正しくありません:\n' + e);
+			if( isRequired ) return false;
 		}
-	}
 
-	this.version = function(){
-		var version = packageJson.version;
+		builder.configure({
+			legacy : command.kag3 ? true : false,
+			release : command.release ? true : false
+		});
+		try {
+			var resultScript = builder.parseFiles(ksFiles);
+		} catch(e) {
+			log.error('スクリプトのコンパイル中にエラーが発生しました:\n' + e);
+			if( isRequired ) return false;
+		}
 
-		return version;
+		if( resultScript.warnings.length > 0 ){
+			log.warn('スクリプトのコンパイル中に警告が発生しました:');
+			for( var key in resultScript.warnings ){
+				log.warn(resultScript.warnings[key]);
+			}
+		}
+
+		completeScript = {'scripts': resultScript['scripts'], 'config': resultConfig};
+
+		log.message('スクリプトのコンパイルを完了しました');
+
+		return true;
 	}
 
 	function setupResource(srcDir, destDir, extensions, type, safeList, removeExtension, isForce, cb){
@@ -533,7 +610,6 @@ var Builder3 = function(){
 								if( key < targetFiles.length ){
 									loop(key + 1);
 								} else {
-									console.log('calling...');
 									cb(map);
 								}
 							}, 0);
@@ -549,10 +625,12 @@ var Builder3 = function(){
 						});
 					}
 				} else {
-					cb(map);	//謎
+					// FIXME: これは必要なのか調査し修正する
+					cb(map);
 				}
 			}
 
+			// FIXME: なぜ利用されていないのか
 			//return exitFlg;
 
 		}
