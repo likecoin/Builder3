@@ -55,7 +55,7 @@ var Builder3 = function(){
 				.option('-p, --package', 'ノベルスフィア向けにパッケージング')
 				.option('-w, --wrapper [version]', '指定したバージョンのO₂ Wrapperでビルド')
 				.option('-W, --wrappers [path]', 'O₂ Wrapperの格納されたフォルダを指定')
-				.option('-N, --novelchan [id]', 'のべるちゃんのコンテンツをもってくる')
+				// .option('-N, --novelchan [id]', 'のべるちゃんのコンテンツをもってくる')
 				.parse(process.argv);
 		} else {
 			// when required
@@ -64,9 +64,9 @@ var Builder3 = function(){
 		}
 
 		// ノベルちゃんのコンテンツコンパイル
-		if( command.novelchan ){
-			this.execGetNovelchan();
-		}
+		//if( command.novelchan ){
+		//	this.execGetNovelchan();
+		//}
 
 		// セットアップの状態をチェック
 		if( ! this.setupValidation(command.args, isRequired)) return false;
@@ -610,7 +610,6 @@ var Builder3 = function(){
 								if( key < targetFiles.length ){
 									loop(key + 1);
 								} else {
-									console.log('calling...');
 									cb(map);
 								}
 							}, 0);
