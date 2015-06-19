@@ -325,7 +325,7 @@ exports.parse = function(script,filename){
 				 tagMode == TAG_MODE_BRACKET && currentChar === ']') &&                  //[]スタイルで]がある時
 				currentTagName && currentTagName.isOneOf(['iscript','o2_iscript'])) ||   //iscriptタグの場合
 				//あるいは /* コメントの時も反応する
-				(currentChar == '/' && nextChar == '*') ){         // /*の場合
+				(attrMode != ATTR_MODE_QUOTE && currentChar == '/' && nextChar == '*') ){         // /*の場合
 
 				tagBuilder.resetTag();
 				tagMode = TAG_MODE_NONE;
