@@ -29,7 +29,7 @@ Tag.prototype.toJSON = function(){
 		result[config.scriptTagArgsKey] = 0;
 	}
 	result[config.scriptTagDependencyKey] = this.isDependency? 1 : 0;
-	if( !command.release || // 開発モードはlineNumberとcharNumberを入れる必要があるので、argsなくてもとりあえず0を入れる
+	if( !command.release || // 開発モードはlineNumberとcharNumberを入れる必要があるので、argsなくてもとりあえず0を入れる	
 		this.isOpen ){
 		result[config.scriptTagCallbackArgsKey] = this.isOpen? this.callbackArgs : 0;
 	}
@@ -194,7 +194,7 @@ var TagBuilder = function(tagArray){
 			if( !nearestStack ){
 				throw 'ここで閉じられるタグがないです';
 			}
-			if( this.currentTag.name &&
+			if( this.currentTag.name && 
 				nearestStack !== this.currentTag.name ){
 
 				throw 'ここは'+nearestStack+'を閉じるべきですが、'+this.currentTag.name+'を閉じてます';
@@ -239,7 +239,7 @@ var ATTR_MODE_NONE        = 0, //属性検出してない
 	ATTR_MODE_NAME        = 2, //属性名を検出している
 	ATTR_MODE_NAME_END    = 3, //属性名を検出するの終わったが、「=」がまだない場合
 	ATTR_MODE_VALUE_START = 4, //属性名を検出した、「=」を見つかったが、valueはまだない場合
-	ATTR_MODE_NO_QUOTE    = 5, //属性内容を検出している、「"」なし
+	ATTR_MODE_NO_QUOTE    = 5, //属性内容を検出している、「"」なし	
 	ATTR_MODE_QUOTE       = 6, //属性内容を検出している、「"」あり
 	ATTR_MODE_CALLBACK    = 7,
 	ATTR_MODE_CALLBACK_ARG= 8;
@@ -458,7 +458,7 @@ exports.parse = function(script,filename){
 				}else if( currentChar === '*' ){
 					tagBuilder.startTag( lineNumber, charNumber );
 					tagMode = TAG_MODE_LABEL;
-
+						
 					tagBuilder.appendTagName('label');
 					tagBuilder.appendAttrName('name');
 					continue;
@@ -531,7 +531,7 @@ exports.parse = function(script,filename){
 					if( currentChar == '\n' ){
 
 						tagBuilder.endAttrValue();
-
+						
 						if( tagBuilder.currentTag.args.name === null ){
 
 							if( lastLabelEmptyCount === undefined ){
@@ -606,7 +606,7 @@ exports.parse = function(script,filename){
 					currentChar === ">" ){
 					tagBuilder.markAsDependency();
 				}
-				/*
+				/* 
 				 * タグ名
 				 */
 				//タグの始まりから名前登録へ
@@ -616,10 +616,10 @@ exports.parse = function(script,filename){
 
 					attrMode = ATTR_MODE_TAG_NAME;
 					tagBuilder.appendTagName(currentChar);
-
+					
 				}
 				//タグ名を登録途中
-				else if( attrMode === ATTR_MODE_TAG_NAME ){
+				else if( attrMode === ATTR_MODE_TAG_NAME ){ 
 
 					//スペースであれば登録解除
 					if( currentChar.isOneOf([' ','\t','\n']) ){
@@ -693,10 +693,17 @@ exports.parse = function(script,filename){
 				}
 
 				else if( attrMode === ATTR_MODE_QUOTE ){
+					
+					// ` があったらエスケープします	
+					if (currentChar.isOneOf(['`'])) {
+						tagBuilder.appendAttrValue(nextChar);
+						i += 1;
+
 					//"以外は全部読む
-					if(currentChar.isOneOf(['"'])){
+					} else if(currentChar.isOneOf(['"'])){
 						attrMode = ATTR_MODE_NONE;
 						tagBuilder.endAttrValue();
+
 					}else{
 						tagBuilder.appendAttrValue(currentChar);
 					}
