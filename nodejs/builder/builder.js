@@ -1,13 +1,13 @@
-var util    = require('util'),
-	fs      = require('fs'),
-	path    = require('path'),
-	config  = require('../config.js').config,
+var util		= require('util'),
+	fs			= require('fs'),
+	path		= require('path'),
+	config	= require('../config.js').config,
 	command = require('commander');
 
 command
-  .option('-l, --legacy', 'Legacyモードを使う')
-  .option('-r, --release', 'Releaseモードを使う')
-  .parse(process.argv);
+	.option('-l, --legacy', 'Legacyモードを使う')
+	.option('-r, --release', 'Releaseモードを使う')
+	.parse(process.argv);
 
 var Tag = function(){
 	this.name = undefined;
@@ -17,7 +17,6 @@ var Tag = function(){
 	this.callbackArgs = [];
 	this.isOpen = false;
 	this.isClose = false;
-	this.isDependency = false;
 }
 
 Tag.prototype.toJSON = function(){
@@ -28,8 +27,7 @@ Tag.prototype.toJSON = function(){
 	}else{
 		result[config.scriptTagArgsKey] = 0;
 	}
-	result[config.scriptTagDependencyKey] = this.isDependency? 1 : 0;
-	if( !command.release || // 開発モードはlineNumberとcharNumberを入れる必要があるので、argsなくてもとりあえず0を入れる	
+	if( !command.release || // 開発モードはlineNumberとcharNumberを入れる必要があるので、argsなくてもとりあえず0を入れる
 		this.isOpen ){
 		result[config.scriptTagCallbackArgsKey] = this.isOpen? this.callbackArgs : 0;
 	}
@@ -53,11 +51,11 @@ Tag.prototype.toJSON = function(){
 
 var TagBuilder = function(tagArray){
 
-	var INPUT_MODE_NONE              = 0,
-		INPUT_MODE_NAME              = 1,
-		INPUT_MODE_ATTR_NAME         = 2,
-		INPUT_MODE_ATTR_VALUE        = 3,
-		INPUT_MODE_CALLBACK_ARGS     = 4,
+	var INPUT_MODE_NONE							= 0,
+		INPUT_MODE_NAME							= 1,
+		INPUT_MODE_ATTR_NAME				 = 2,
+		INPUT_MODE_ATTR_VALUE				= 3,
+		INPUT_MODE_CALLBACK_ARGS		 = 4,
 		INPUT_MODE_CALLBACK_ARGS_END = 5;
 
 	this.currentTag = undefined;
@@ -163,9 +161,6 @@ var TagBuilder = function(tagArray){
 		inputMode = INPUT_MODE_CALLBACK_ARGS_END;
 	}
 
-	this.markAsDependency = function(){
-		this.currentTag.isDependency = true;
-	}
 	this.markAsOpenTag = function(){
 		this.currentTag.isOpen = true;
 	}
@@ -180,7 +175,7 @@ var TagBuilder = function(tagArray){
 		if( inputMode == INPUT_MODE_ATTR_VALUE || inputMode == INPUT_MODE_ATTR_NAME ){
 			this.endAttrValue();
 		}
-		if( !this.currentTag.name && !this.currentTag.isClose ){  // [/]名前のないcloseTagは自動的に対応します
+		if( !this.currentTag.name && !this.currentTag.isClose ){	// [/]名前のないcloseTagは自動的に対応します
 			throw 'タグ名がありません';
 		}
 		if( this.currentTag.isOpen && this.currentTag.isClose ){
@@ -194,7 +189,7 @@ var TagBuilder = function(tagArray){
 			if( !nearestStack ){
 				throw 'ここで閉じられるタグがないです';
 			}
-			if( this.currentTag.name && 
+			if( this.currentTag.name &&
 				nearestStack !== this.currentTag.name ){
 
 				throw 'ここは'+nearestStack+'を閉じるべきですが、'+this.currentTag.name+'を閉じてます';
@@ -227,26 +222,26 @@ var TagBuilder = function(tagArray){
 }
 
 // Tagモード
-var TAG_MODE_NONE     = 0, //タグの外
-	TAG_MODE_BRACKET  = 1, //タグの中、[]スタイル
-	TAG_MODE_AT       = 2, //タグの中、@スタイル
-	TAG_MODE_TEXT     = 3, //タグの中、テキストタグ
-	TAG_MODE_LABEL    = 4; //タグの中、*ラベル
+var TAG_MODE_NONE		 = 0, //タグの外
+	TAG_MODE_BRACKET	= 1, //タグの中、[]スタイル
+	TAG_MODE_AT			 = 2, //タグの中、@スタイル
+	TAG_MODE_TEXT		 = 3, //タグの中、テキストタグ
+	TAG_MODE_LABEL		= 4; //タグの中、*ラベル
 
 // 属性モード
-var ATTR_MODE_NONE        = 0, //属性検出してない
+var ATTR_MODE_NONE      = 0, //属性検出してない
 	ATTR_MODE_TAG_NAME    = 1,
 	ATTR_MODE_NAME        = 2, //属性名を検出している
 	ATTR_MODE_NAME_END    = 3, //属性名を検出するの終わったが、「=」がまだない場合
 	ATTR_MODE_VALUE_START = 4, //属性名を検出した、「=」を見つかったが、valueはまだない場合
-	ATTR_MODE_NO_QUOTE    = 5, //属性内容を検出している、「"」なし	
+	ATTR_MODE_NO_QUOTE    = 5, //属性内容を検出している、「"」なし
 	ATTR_MODE_QUOTE       = 6, //属性内容を検出している、「"」あり
 	ATTR_MODE_CALLBACK    = 7,
 	ATTR_MODE_CALLBACK_ARG= 8;
 
 // 文法モード
 var SYNTAX_MODE_STANDARD = 0,
-	SYNTAX_MODE_LEGACY   = 1;
+	SYNTAX_MODE_LEGACY	 = 1;
 
 
 var syntaxMode = SYNTAX_MODE_STANDARD;
@@ -259,11 +254,11 @@ var lastLabelName = undefined;
 var lastLabelEmptyCount = undefined;
 
 /**
- * @param script {String}  KAGの文字列
+ * @param script {String}	KAGの文字列
  * @param filename {String}
  *
  * @return result.scripts {Tag[]}
- *         result.warnings {String[]}
+ *				 result.warnings {String[]}
  */
 
 exports.parse = function(script,filename){
@@ -304,7 +299,7 @@ exports.parse = function(script,filename){
 			var nextChar = script.charAt(i+1);
 
 			if( currentChar == "〜" ){ //mac version
-				currentChar = "～";    // window version  Ref #30
+				currentChar = "～";		// window version	Ref #30
 			}
 
 			charNumber ++;
@@ -320,11 +315,12 @@ exports.parse = function(script,filename){
 			 */
 			var currentTagName = tagBuilder.currentTagName();
 			if( //まずはタグが閉じる時のみ反応する
-				(attrMode != ATTR_MODE_QUOTE &&                                          //"属性をくくってない
-				(tagMode == TAG_MODE_AT && currentChar === '\n' ||                       //@スタイルで改行
-				 tagMode == TAG_MODE_BRACKET && currentChar === ']') &&                  //[]スタイルで]がある時
-				currentTagName && currentTagName.isOneOf(['iscript','o2_iscript'])) ||   //iscriptタグの場合
+				(attrMode != ATTR_MODE_QUOTE &&																					//"属性をくくってない
+				(tagMode == TAG_MODE_AT && currentChar === '\n' ||											 //@スタイルで改行
+				 tagMode == TAG_MODE_BRACKET && currentChar === ']') &&									//[]スタイルで]がある時
+				currentTagName && currentTagName.isOneOf(['iscript','o2_iscript'])) ||	 //iscriptタグの場合
 				//あるいは /* コメントの時も反応する
+
 				(attrMode != ATTR_MODE_QUOTE && currentChar == '/' && nextChar == '*') ){         // /*の場合
 
 				tagBuilder.resetTag();
@@ -384,10 +380,10 @@ exports.parse = function(script,filename){
 			 * コメントにあったら、行末までスキップ。
 			 *
 			 * コメントが成立する条件：
-			 *   legacyモード：
-			 *     行末から;は全部tab
-			 *   standardモード：
-			 *     quote以外のところ
+			 *	 legacyモード：
+			 *		 行末から;は全部tab
+			 *	 standardモード：
+			 *		 quote以外のところ
 			 */
 			if( currentChar === ';' ){
 				var isComment = (function(){
@@ -458,7 +454,7 @@ exports.parse = function(script,filename){
 				}else if( currentChar === '*' ){
 					tagBuilder.startTag( lineNumber, charNumber );
 					tagMode = TAG_MODE_LABEL;
-						
+
 					tagBuilder.appendTagName('label');
 					tagBuilder.appendAttrName('name');
 					continue;
@@ -531,7 +527,7 @@ exports.parse = function(script,filename){
 					if( currentChar == '\n' ){
 
 						tagBuilder.endAttrValue();
-						
+
 						if( tagBuilder.currentTag.args.name === null ){
 
 							if( lastLabelEmptyCount === undefined ){
@@ -565,8 +561,8 @@ exports.parse = function(script,filename){
 				/*
 				 * タグの終わりを検出
 				 */
-				if( attrMode != ATTR_MODE_QUOTE &&                         //"属性をくくってない
-					(tagMode == TAG_MODE_AT && currentChar === '\n' ||     //@スタイルで改行
+				if( attrMode != ATTR_MODE_QUOTE &&												 //"属性をくくってない
+					(tagMode == TAG_MODE_AT && currentChar === '\n' ||		 //@スタイルで改行
 					 tagMode == TAG_MODE_BRACKET && currentChar === ']')){ //[]スタイルで]が来た
 
 					tagBuilder.closeTag();
@@ -587,8 +583,8 @@ exports.parse = function(script,filename){
 				}
 				/*
 				 * callbackを閉じるタグの/を処理する
-				 * [/foreach]  @/foreach みたいな感じ
-				 *  ^           ^
+				 * [/foreach]	@/foreach みたいな感じ
+				 *	^					 ^
 				 */
 				else if( attrMode === ATTR_MODE_NONE &&
 					!tagBuilder.currentTagName() &&
@@ -596,17 +592,8 @@ exports.parse = function(script,filename){
 
 					tagBuilder.markAsCloseTag();
 				}
-				/**
-				 * dependency文法
-				 * [image]
-				 * [> pimage]
-				 */
-				else if( attrMode === ATTR_MODE_NONE &&
-					!tagBuilder.currentTag.name &&
-					currentChar === ">" ){
-					tagBuilder.markAsDependency();
-				}
-				/* 
+
+				/*
 				 * タグ名
 				 */
 				//タグの始まりから名前登録へ
@@ -616,10 +603,10 @@ exports.parse = function(script,filename){
 
 					attrMode = ATTR_MODE_TAG_NAME;
 					tagBuilder.appendTagName(currentChar);
-					
+
 				}
 				//タグ名を登録途中
-				else if( attrMode === ATTR_MODE_TAG_NAME ){ 
+				else if( attrMode === ATTR_MODE_TAG_NAME ){
 
 					//スペースであれば登録解除
 					if( currentChar.isOneOf([' ','\t','\n']) ){
@@ -646,7 +633,7 @@ exports.parse = function(script,filename){
 
 					if(currentChar.isOneOf([' ','\t','\n'])){
 						// [aa bb = cc]
-						//       ^この空白である場合
+						//			 ^この空白である場合
 						attrMode = ATTR_MODE_NAME_END;
 					}else if( currentChar === '=' ){
 						// [aa bb=cc]　の場合
@@ -658,12 +645,12 @@ exports.parse = function(script,filename){
 				else if( attrMode === ATTR_MODE_NAME_END ){
 
 					// [aa bb = cc]
-					//        ^この「=」である場合
+					//				^この「=」である場合
 					if( currentChar === '=' ){
 						attrMode = ATTR_MODE_VALUE_START;
 
 					// [aa bb cc = dd]
-					//        ^この場合、bbの値をtrueにするべき
+					//				^この場合、bbの値をtrueにするべき
 					}else if( !currentChar.isOneOf(['\t',' ','\n']) ){
 						tagBuilder.endAttrValue();
 						attrMode = ATTR_MODE_NONE;
@@ -693,8 +680,8 @@ exports.parse = function(script,filename){
 				}
 
 				else if( attrMode === ATTR_MODE_QUOTE ){
-					
-					// ` があったらエスケープします	
+
+					// ` があったらエスケープします
 					if (currentChar.isOneOf(['`'])) {
 						tagBuilder.appendAttrValue(nextChar);
 						i += 1;
@@ -723,7 +710,7 @@ exports.parse = function(script,filename){
 				/*
 				 * callbackの属性名を読み込み始まる
 				 * -(aa,bb)か、(aa,bb)か
-				 * ^^         ^
+				 * ^^				 ^
 				 */
 				else if( attrMode === ATTR_MODE_NONE && currentChar.isOneOf(['-','(']) ){
 
@@ -742,7 +729,7 @@ exports.parse = function(script,filename){
 				 * このargsが終わります、
 				 * 次のargsに移る
 				 * (aa,bb)->
-				 *       ^
+				 *			 ^
 				 */
 				else if( (attrMode === ATTR_MODE_CALLBACK || attrMode === ATTR_MODE_CALLBACK_ARG) &&
 					currentChar.isOneOf([',',')']) ){
@@ -752,7 +739,7 @@ exports.parse = function(script,filename){
 				/*
 				 * ->があって、これはopenTagです
 				 * (aa,bb)-> (aa,bb)> -aa,bb>
-				 *         ^        ^       ^
+				 *				 ^				^			 ^
 				 */
 				else if( attrMode === ATTR_MODE_CALLBACK && currentChar === ">" ){
 					tagBuilder.markAsOpenTag();
@@ -779,8 +766,8 @@ exports.parse = function(script,filename){
 /**
  * @param files {String[]} array of filename
  *
- * @return result.script {Object}   {"file1.ks":["tag1","tag2"],"file2.ks": ... }
- *         result.warnings {String[]}
+ * @return result.script {Object}	 {"file1.ks":["tag1","tag2"],"file2.ks": ... }
+ *				 result.warnings {String[]}
  */
 exports.parseFiles = function(files){
 	var scripts = {};
@@ -823,10 +810,10 @@ exports.configure = function (options) {
 //commonjs用のfunction
 exports.main = function commonjsMain(args) {
 	if (!args.length) {
-        console.log('Usage: builder.js FILE1 [FILE2 ...]');
-        process.exit(1);
-    }
-    var files = args;
+				console.log('Usage: builder.js FILE1 [FILE2 ...]');
+				process.exit(1);
+		}
+		var files = args;
 	return JSON.stringify(exports.parseFiles(files));
 }
 

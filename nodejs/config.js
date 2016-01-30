@@ -2,10 +2,9 @@
 	var config = {
 		scriptTagNameKey:0,
 		scriptTagArgsKey:1,
-		scriptTagDependencyKey:2,
-		scriptTagCallbackArgsKey:3,
-		scriptTagLineKey:4,
-		scriptTagCharKey:5
+		scriptTagCallbackArgsKey:2,
+		scriptTagLineKey:3,
+		scriptTagCharKey:4
 	}
 	if(typeof module !== 'undefined' && module.exports){
 		exports.config = config;
