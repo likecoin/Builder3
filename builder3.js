@@ -578,12 +578,12 @@ var Builder3 = function(){
 					}
 				}
 				if( flg2 && type == 'sound' ) {
-					if( flg2 ){
+					if( flg2 && !cancelCopy ){
 						map[storage.toLowerCase()] = prefix + storage.toLowerCase();
 					}
 				}
 				if( type == 'video' ) {
-					if( flg2 ){
+					if( flg2 && !cancelCopy ){
 						map[storage.toLowerCase()] = prefix + storage.toLowerCase();
 					}
 				}
