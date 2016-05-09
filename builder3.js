@@ -475,6 +475,7 @@ var Builder3 = function(){
 
 				var flg1 = true;
 				var flg2 = true;
+				var cancelCopy = false;
 
 				if( storage == '' || extname == ''){
 					// files without storagename or extension will be rejected
@@ -505,6 +506,8 @@ var Builder3 = function(){
 									flg2 = false;
 									exitFlg = true;
 									safeList.push(filename);
+								}else{
+									cancelCopy = true;
 								}
 							} else {
 								safeList.push(filename);
@@ -524,7 +527,7 @@ var Builder3 = function(){
 									exitFlg = true;
 								}
 							} else {
-								flg2 = false;
+								cancelCopy = true;
 							}
 						} else if( extname == EXTENSIONS.VIDEO[1] ){
 							if( !isForce && srcPathAllFileNames.indexOf(storage + '.' + EXTENSIONS.VIDEO[0]) == -1 ){
@@ -589,46 +592,54 @@ var Builder3 = function(){
 						map[storage.toLowerCase()] = prefix + storage.toLowerCase();
 					}
 				}
-				if( flg2 ){
-					var srcFile = path.normalize(targetFiles[key]);
-					var destFile = path.join(destDir, type, filename.toLowerCase());
+				if ( !cancelCopy ){
+					if( flg2 ){
+						var srcFile = path.normalize(targetFiles[key]);
+						var destFile = path.join(destDir, type, filename.toLowerCase());
 
-					if( fs.existsSync(destFile) ){
-						var srcMTime = util.inspect(fs.statSync(targetFiles[key])).mtime;
-						var destMTime = util.inspect(fs.statSync(targetFiles[key])).mtime;
+						if( fs.existsSync(destFile) ){
+							var srcMTime = util.inspect(fs.statSync(targetFiles[key])).mtime;
+							var destMTime = util.inspect(fs.statSync(targetFiles[key])).mtime;
 
-						if( srcMTime > destMTime ){
+							if( srcMTime > destMTime ){
+								fsex.copy(srcFile, destFile, function(){
+									log.message('上書コピー:' + srcFile);
+									if( key < targetFiles.length ){
+										loop(key + 1);
+									} else {
+										cb(map);
+									}
+								});
+							} else {
+								setTimeout(function(){
+									log.message('コピー省略:' + srcFile);
+									if( key < targetFiles.length ){
+										loop(key + 1);
+									} else {
+										cb(map);
+									}
+								}, 0);
+							}
+						} else {
 							fsex.copy(srcFile, destFile, function(){
-								log.message('上書コピー:' + srcFile);
+								log.message('新規コピー:' + srcFile);
 								if( key < targetFiles.length ){
 									loop(key + 1);
 								} else {
 									cb(map);
 								}
 							});
-						} else {
-							setTimeout(function(){
-								log.message('コピー省略:' + srcFile);
-								if( key < targetFiles.length ){
-									loop(key + 1);
-								} else {
-									cb(map);
-								}
-							}, 0);
 						}
 					} else {
-						fsex.copy(srcFile, destFile, function(){
-							log.message('新規コピー:' + srcFile);
-							if( key < targetFiles.length ){
-								loop(key + 1);
-							} else {
-								cb(map);
-							}
-						});
+						// FIXME: これは必要なのか調査し修正する
+						cb(map);
 					}
-				} else {
-					// FIXME: これは必要なのか調査し修正する
-					cb(map);
+				}else{
+					if( key < targetFiles.length ){
+						loop(key + 1);
+					} else {
+						cb(map);
+					}
 				}
 			}
 
