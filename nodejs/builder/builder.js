@@ -325,7 +325,7 @@ exports.parse = function(script,filename){
 
 				tagBuilder.resetTag();
 				tagMode = TAG_MODE_NONE;
-				tagMode = ATTR_MODE_NONE;
+				attrMode = ATTR_MODE_NONE;
 
 				var scriptLeft = script.substr(i);
 
