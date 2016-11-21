@@ -467,9 +467,15 @@ var Builder3 = function(){
 			}
 
 			function loop(key){
-				var storage = path.basename(targetFiles[key], path.extname(targetFiles[key]));
-				var extname = path.extname(targetFiles[key]).substr(1);
-				var filename = path.basename(targetFiles[key]);
+				if (targetFiles[key]) {
+					var storage = path.basename(targetFiles[key], path.extname(targetFiles[key]));
+					var extname = path.extname(targetFiles[key]).substr(1);
+					var filename = path.basename(targetFiles[key]);
+				} else {
+					var storage = '';
+					var extname = '';
+					var filename = '';
+				}
 				var prefix = './' + type + '/';
 				//console.log('extname:'+extname+' / storage:'+storage+' / filename:'+filename);
 
