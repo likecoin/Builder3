@@ -1,8 +1,7 @@
 FROM modmod
+RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
 RUN apt-get update && apt-get install -y \
-  nodejs \
-  nodejs-legacy \
-  npm
+  nodejs
 ADD package.json /tmp/package.json
 RUN cd /tmp && npm install
 RUN cp -a /tmp/node_modules /builder3
