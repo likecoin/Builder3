@@ -1,5 +1,5 @@
 #!/bin/sh
 
 cd $1
-mogrify -resize $2 *.jpg
-mogrify -resize $2 *.png
+mogrify -resize $2 -strip *.jpg
+mogrify -resize $2 -strip *.png
