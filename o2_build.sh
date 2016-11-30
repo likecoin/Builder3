@@ -2,4 +2,4 @@
 
 # builder directory
 cd /builder3
-node builder3.js -e 3.3.0-g2ef95f5 $1 $2
+node builder3.js -e 3.4.0-e104f0c $1 $2
