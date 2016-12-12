@@ -1,0 +1,56 @@
+general:
+  branches:
+    only:
+      - oice
+      - oice_test
+
+machine:
+  environment:
+    PROJECT_NAME: api-project-82698378
+    CLUSTER_NAME: oice-test
+    CLOUDSDK_COMPUTE_ZONE: asia-east1-b
+    DEBIAN_FRONTEND: noninteractive
+    GOOGLE_APPLICATION_CREDENTIALS: ${HOME}/account-auth.json
+  services:
+    - docker
+
+dependencies:
+  cache_directories:
+    - /opt/google-cloud-sdk
+  override:
+    - sudo /opt/google-cloud-sdk/bin/gcloud --quiet components update
+    - sudo /opt/google-cloud-sdk/bin/gcloud --quiet components update kubectl
+    - echo $GCLOUD_SERVICE_KEY_OICE | base64 --decode -i > ${HOME}/account-auth.json
+    - sudo /opt/google-cloud-sdk/bin/gcloud auth activate-service-account --key-file ${HOME}/account-auth.json
+    - sudo /opt/google-cloud-sdk/bin/gcloud config set project $PROJECT_NAME
+    - sudo /opt/google-cloud-sdk/bin/gcloud --quiet config set container/cluster $CLUSTER_NAME
+    # Reading the zone from the env var is not working so we set it here
+    - sudo /opt/google-cloud-sdk/bin/gcloud config set compute/zone ${CLOUDSDK_COMPUTE_ZONE}
+    - sudo /opt/google-cloud-sdk/bin/gcloud --quiet container clusters get-credentials $CLUSTER_NAME
+    - sudo /opt/google-cloud-sdk/bin/gcloud docker -- pull asia.gcr.io/${PROJECT_NAME}/modmod:$MODMOD_CIRCLE_SHA1 || true
+    - docker tag -f asia.gcr.io/${PROJECT_NAME}/modmod:$MODMOD_CIRCLE_SHA1 modmod
+    - sudo /opt/google-cloud-sdk/bin/gcloud docker -- pull asia.gcr.io/${PROJECT_NAME}/o2rqworker:latest || true
+    - ./build.sh
+    - docker tag -f o2rqworker:latest asia.gcr.io/${PROJECT_NAME}/o2rqworker:latest
+    - docker tag -f o2rqworker:latest asia.gcr.io/${PROJECT_NAME}/o2rqworker:${MODMOD_CIRCLE_SHA1}_${CIRCLE_SHA1}
+
+test:
+  override:
+    - ls # dummy test
+#   post:
+#     - docker run -d -p 3000:3000 -e "SECRET_KEY_BASE=abcd1234" us.gcr.io/${PROJECT_NAME}/hello:$CIRCLE_SHA1; sleep 10
+#     - curl --retry 10 --retry-delay 5 -v http://localhost:3000
+
+deployment:
+  staging:
+    branch: oice_test
+    commands:
+      - sudo /opt/google-cloud-sdk/bin/gcloud docker -- push asia.gcr.io/${PROJECT_NAME}/o2rqworker:latest
+      - sudo /opt/google-cloud-sdk/bin/gcloud docker -- push asia.gcr.io/${PROJECT_NAME}/o2rqworker:${MODMOD_CIRCLE_SHA1}_${CIRCLE_SHA1}
+      - sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube
+      - kubectl patch deployment modmod-worker -p '{"spec":{"template":{"spec":{"containers":[{"name":"modmod-worker","image":"asia.gcr.io/'"$PROJECT_NAME"'/o2rqworker:'"$MODMOD_CIRCLE_SHA1"'_'"$CIRCLE_SHA1"'"}]}}}}'
+  production:
+    branch: oice
+    commands:
+      - sudo /opt/google-cloud-sdk/bin/gcloud docker -- push asia.gcr.io/${PROJECT_NAME}/o2rqworker:latest
+      - sudo /opt/google-cloud-sdk/bin/gcloud docker -- push asia.gcr.io/${PROJECT_NAME}/o2rqworker:${MODMOD_CIRCLE_SHA1}_${CIRCLE_SHA1}
