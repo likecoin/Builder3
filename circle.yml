@@ -16,6 +16,11 @@ machine:
   services:
     - docker
 
+checkout:
+  post:
+    - git submodule sync
+    - git submodule update --init
+
 dependencies:
   cache_directories:
     - /opt/google-cloud-sdk
@@ -61,4 +66,3 @@ deployment:
       - sudo /opt/google-cloud-sdk/bin/gcloud --quiet container clusters get-credentials $PROD_CLUSTER_NAME
       - sudo chown -R ubuntu:ubuntu /home/ubuntu/.kube
       - kubectl patch deployment modmod-worker -p '{"spec":{"template":{"spec":{"containers":[{"name":"modmod-worker","image":"asia.gcr.io/'"$PROJECT_NAME"'/o2rqworker:'"$MODMOD_CIRCLE_SHA1"'_'"$CIRCLE_SHA1"'"}]}}}}'
-      
