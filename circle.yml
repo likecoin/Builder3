@@ -15,6 +15,9 @@ machine:
     GOOGLE_APPLICATION_CREDENTIALS: ${HOME}/account-auth.json
   services:
     - docker
+    - redis
+  hosts:
+    redis: 127.0.0.1
 
 checkout:
   post:
@@ -43,10 +46,9 @@ dependencies:
 
 test:
   override:
-    - ls # dummy test
-#   post:
-#     - docker run -d -p 3000:3000 -e "SECRET_KEY_BASE=abcd1234" us.gcr.io/${PROJECT_NAME}/hello:$CIRCLE_SHA1; sleep 10
-#     - curl --retry 10 --retry-delay 5 -v http://localhost:3000
+    - docker run o2rqworker /builder3/o2_build.sh /tmp /tmp               # check if node is working
+    - docker run --net=host -d --name "o2rqworker" o2rqworker; sleep 10   # try setup rq worker
+    - docker kill "o2rqworker"                                            # if cannot kill, rq worker has crashed, otherwise pass
 
 deployment:
   staging:
