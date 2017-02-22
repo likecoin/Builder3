@@ -1,5 +1,6 @@
 #!/bin/sh
 
 cd $1
-mogrify -resize $2 -strip *.jpg
-mogrify -resize $2 -strip *.png
+find . -type f -iname "*.jpg" -exec mogrify -resize $2 -strip "{}" \;
+find . -type f -iname "*.png" -exec mogrify -resize $2 -strip "{}" \;
+find . -type f -iname "*.png" -exec pngquant --ext .png --force --speed 1 "{}" \;
