@@ -11,7 +11,7 @@ jobs:
     environment:
       - PROJECT_NAME: api-project-82698378
       - CLUSTER_NAME: oice-test
-      - CLOUDSDK_COMPUTE_ZONE: asia-east1-b
+      - DEV_CLOUDSDK_COMPUTE_ZONE: asia-east1-b
       - PROD_CLUSTER_NAME: oice-production
       - PROD_CLOUDSDK_COMPUTE_ZONE: asia-east1-a
       - DEBIAN_FRONTEND: noninteractive
@@ -26,7 +26,7 @@ jobs:
             gcloud auth activate-service-account --key-file /account-auth.json
             gcloud config set project $PROJECT_NAME
             gcloud --quiet config set container/cluster $CLUSTER_NAME
-            gcloud config set compute/zone ${CLOUDSDK_COMPUTE_ZONE}
+            gcloud config set compute/zone ${DEV_CLOUDSDK_COMPUTE_ZONE}
             gcloud --quiet container clusters get-credentials $CLUSTER_NAME
 
       - setup_docker_engine:
