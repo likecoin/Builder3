@@ -1,12 +1,11 @@
 FROM modmod:latest
 RUN mkdir /builder3
+WORKDIR /builder3
 RUN apk --no-cache add \
   nodejs \
 	&& apk --no-cache add 'pngquant' --repository http://nl.alpinelinux.org/alpine/edge/testing
-ADD package.json /tmp/package.json
-RUN cd /tmp && npm install
-RUN mv /tmp/node_modules /builder3/node_modules
-WORKDIR /builder3
+ADD package.json /builder3/package.json
+RUN npm install
 ADD . /builder3
 WORKDIR /
 CMD rqworker -u redis://redis:6379
