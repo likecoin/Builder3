@@ -1,0 +1,71 @@
+version: 2
+jobs:
+  build:
+    working_directory: ~/o2rqworker
+    branches:
+      only:
+        - oice
+        - oice_test
+    docker:
+      - image: lakoo/node-gcloud-docker
+    environment:
+      - PROJECT_NAME: api-project-82698378
+      - CLUSTER_NAME: oice-test
+      - DEV_CLOUDSDK_COMPUTE_ZONE: asia-east1-b
+      - PROD_CLUSTER_NAME: oice-production
+      - PROD_CLOUDSDK_COMPUTE_ZONE: asia-east1-a
+      - DEBIAN_FRONTEND: noninteractive
+      - GOOGLE_APPLICATION_CREDENTIALS: /account-auth.json
+    steps:
+      - checkout
+      - run: git submodule sync && git submodule update --init;
+      - run:
+          name: Setup gcloud
+          command: |
+            echo $GCLOUD_SERVICE_KEY_OICE | base64 -d > /account-auth.json
+            gcloud auth activate-service-account --key-file /account-auth.json
+            gcloud config set project $PROJECT_NAME
+            gcloud --quiet config set container/cluster $CLUSTER_NAME
+            gcloud config set compute/zone ${DEV_CLOUDSDK_COMPUTE_ZONE}
+            gcloud --quiet container clusters get-credentials $CLUSTER_NAME
+
+      - setup_docker_engine:
+          reusable: true
+          exclusive: true
+      - run:
+          name: Build image
+          command: |
+            if [ -z "${MODMOD_CIRCLE_SHA1}" ]; then
+              gcloud docker -- pull asia.gcr.io/${PROJECT_NAME}/modmod:latest
+              docker tag asia.gcr.io/${PROJECT_NAME}/modmod:latest modmod
+            else
+              gcloud docker -- pull asia.gcr.io/${PROJECT_NAME}/modmod:$MODMOD_CIRCLE_SHA1
+              docker tag asia.gcr.io/${PROJECT_NAME}/modmod:$MODMOD_CIRCLE_SHA1 modmod
+            fi
+            ./build.sh
+            docker tag o2rqworker:latest asia.gcr.io/${PROJECT_NAME}/o2rqworker:latest
+            docker tag o2rqworker:latest asia.gcr.io/${PROJECT_NAME}/o2rqworker:${MODMOD_CIRCLE_SHA1}_${CIRCLE_SHA1}
+      - run:
+          name: Test
+          command: |
+            docker run o2rqworker /builder3/o2_build.sh /tmp /tmp
+            docker run -d --name "redis" --add-host redis:127.0.0.1 redis:alpine; sleep 10
+            docker run --network container:redis -d --name "o2rqworker" o2rqworker; sleep 10
+            docker kill "o2rqworker"
+      - run:
+          name: Push images
+          command: |
+            gcloud docker -- push asia.gcr.io/${PROJECT_NAME}/o2rqworker:latest
+            gcloud docker -- push asia.gcr.io/${PROJECT_NAME}/o2rqworker:${MODMOD_CIRCLE_SHA1}_${CIRCLE_SHA1}
+      - deploy:
+          name: Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "oice" ]; then
+              gcloud config set compute/zone ${PROD_CLOUDSDK_COMPUTE_ZONE}
+              gcloud --quiet config set container/cluster $PROD_CLUSTER_NAME
+              gcloud --quiet container clusters get-credentials $PROD_CLUSTER_NAME
+              kubectl patch deployment modmod-worker -p '{"spec":{"template":{"spec":{"containers":[{"name":"modmod-worker","image":"asia.gcr.io/'"$PROJECT_NAME"'/o2rqworker:'"$MODMOD_CIRCLE_SHA1"'_'"$CIRCLE_SHA1"'"}]}}}}'
+            fi
+            if [ "${CIRCLE_BRANCH}" == "oice_test" ]; then
+              kubectl patch deployment modmod-worker -p '{"spec":{"template":{"spec":{"containers":[{"name":"modmod-worker","image":"asia.gcr.io/'"$PROJECT_NAME"'/o2rqworker:'"$MODMOD_CIRCLE_SHA1"'_'"$CIRCLE_SHA1"'"}]}}}}'
+            fi

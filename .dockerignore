@@ -1,0 +1,6 @@
+.DS_Store
+.dockerignore
+.git
+.gitignore
+node_modules
+circle.yml

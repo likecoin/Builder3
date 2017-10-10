@@ -1,0 +1,3 @@
+[submodule "engines"]
+	path = engines
+url=../oice-o2engine-dist.git
