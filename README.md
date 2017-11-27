@@ -1,5 +1,6 @@
 # builder3
 
+This is the proprietary software for building oice, please refer to LICENSE file for details.
 
 ## run
 
@@ -7,15 +8,9 @@
 $ node builder3.js -e 2.2.1 [src] [dest]
 ```
 
-## clone all
-
-```
-$ git clone --recursive git@bitbucket.org:kakerukasai/builder3.git
-```
-
 ## Building docker image for use in oice/kubernetes
 
-!!! Image [modmod](https://github.com/lakoo/modmod) is required as base !!!
+!!! Image [modmod](https://github.com/lakoo/oice-server) is required as base !!!
 
 ```bash
 $ ./build.sh
