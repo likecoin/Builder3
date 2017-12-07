@@ -1,4 +1,4 @@
 [submodule "engines"]
 	path = engines
-	url = https://github.com/lakoo/oice-o2engine-dist.git
+	url = https://github.com/likecoin/oice-o2engine-dist.git
 
