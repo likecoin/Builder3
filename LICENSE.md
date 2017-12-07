@@ -4,8 +4,8 @@ novelsphere.js is a HTML5 based game engine developed by Gengosha Inc. The engin
 
 ## Article 1 Definitions
 - “This Agreement” refers to the Limited License Agreement of novelsphere.js for oice.
-- “novelsphere.js” refers to builder3.js, log.js, fsex.js, nodejs/builder/buider.js in [lakoo/Builder3](https://github.com/lakoo/Builder3) and all software in the [lakoo/oice-o2engine-dist](https://github.com/lakoo/oice-o2engine-dist) repository.
-“oice” refers to the open source visual novel creator developed by oice Limited.
+- “novelsphere.js” refers to builder3.js, log.js, fsex.js, nodejs/builder/buider.js in [likecoin/Builder3](https://github.com/likecoin/Builder3) and all software in the [likecoin/oice-o2engine-dist](https://github.com/likecoin/oice-o2engine-dist) repository.
+- “oice” refers to the open source visual novel creator developed by oice Limited.
 - “A user” refers to a person who uses novelsphere.js in whole or in part.
 
 ## Article 2 Attribution of Copyright and Other Rights
