@@ -2,7 +2,7 @@ FROM modmod:latest
 RUN mkdir /builder3
 WORKDIR /builder3
 RUN apk --no-cache add \
-  nodejs \
+  nodejs npm \
 	&& apk --no-cache add 'pngquant' --repository http://nl.alpinelinux.org/alpine/edge/community
 ADD package.json /builder3/package.json
 RUN npm install
