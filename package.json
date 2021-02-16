@@ -4,7 +4,7 @@
   "main": "builder3",
   "description": "",
   "dependencies": {
-    "adm-zip": "^0.4.4",
+    "adm-zip": "^0.5.2",
     "unorm": "^1.3.3",
     "commander": "^2.5.0"
   },
