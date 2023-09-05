@@ -3,21 +3,21 @@ jobs:
   build:
     working_directory: ~/o2rqworker
     docker:
-      - image: lakoo/node-gcloud-docker
+      - image: cimg/gcp:2022.09
     environment:
       - PROJECT_NAME: api-project-82698378
       - PROD_CLUSTER_NAME: oice-production
       - PROD_CLOUDSDK_COMPUTE_ZONE: asia-east1-a
       - DEBIAN_FRONTEND: noninteractive
-      - GOOGLE_APPLICATION_CREDENTIALS: /account-auth.json
+      - GOOGLE_APPLICATION_CREDENTIALS: /tmp/account-auth.json
     steps:
       - checkout
       - run: git submodule sync && git submodule update --init;
       - run:
           name: Setup gcloud
           command: |
-            echo $GCLOUD_SERVICE_KEY_OICE | base64 -d > /account-auth.json
-            gcloud auth activate-service-account --key-file /account-auth.json
+            echo $GCLOUD_SERVICE_KEY_OICE | base64 -d > /tmp/account-auth.json
+            gcloud auth activate-service-account --key-file /tmp/account-auth.json
             gcloud config set project $PROJECT_NAME
 
       - setup_docker_engine:
@@ -42,6 +42,7 @@ jobs:
             docker run o2rqworker /builder3/o2_build.sh /tmp /tmp
             docker run -d --name "redis" --add-host redis:127.0.0.1 redis:alpine; sleep 10
             docker run --network container:redis -d --name "o2rqworker" o2rqworker; sleep 10
+            docker logs o2rqworker
             docker kill "o2rqworker"
       - run:
           name: Push images
